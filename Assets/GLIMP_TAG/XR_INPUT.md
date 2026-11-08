@@ -1,25 +1,41 @@
-# Quest XR hand and controller input
+# Quest XR rig and hand input
 
-The project now includes GlimpTagXRHandInput.cs. It reads tracked poses through Unity's built-in UnityEngine.XR.InputDevices API, so it does not require a separate hand-input code package.
+The project now creates its first XR player rig automatically when the generated scene starts.
 
-## Intended rig wiring
-1. Use an XR Origin with a working OpenXR runtime.
-2. Assign the XR Origin's Camera Offset / tracking-space transform to trackingSpace.
-3. Create two empty proxy GameObjects under the tracking-space object: LeftHandProxy and RightHandProxy.
-4. Assign those transforms to leftHandTarget and rightHandTarget.
-5. Assign the same two proxy transforms to GlimpTagLocomotion.leftHand and rightHand.
-6. Keep the proxies separate from the actual XR controller objects. The script turns the proxy GameObjects off when tracking is unavailable.
-7. Leave preferHandTracking enabled to use tracked hands when the runtime exposes them; Touch controllers are the fallback.
+## Runtime rig
 
-## Quest / OpenXR project configuration
-Meta's current Unity guidance recommends Unity OpenXR for new Quest projects. Install XR Plug-in Management and OpenXR, enable OpenXR for Android / Meta Quest, enable the Meta Quest feature group, and add the Oculus Touch Controller interaction profile. Enable the Hand Interaction Profile as well if hand tracking is required by the project.
+- A player root with a Rigidbody and capsule collider
+- A floor-relative tracking-space transform
+- A camera driven from the XR center-eye pose
+- Left and right hand proxy transforms
+- XR Hands palm-joint tracking when the OpenXR hand subsystem is running
+- Quest Touch controller pose fallback
+- Hand-contact locomotion with a per-step correction limit and player speed cap
 
-The repository's package manifest pins Unity 6-compatible versions for OpenXR, XR Plug-in Management, NGO, and Unity Transport. Package installation alone does not automatically configure all XR Plug-in Management project settings.
+## OpenXR setup
 
-## Compatibility notes
-- Uses Unity's built-in XR input API (UnityEngine.XR), not the newer Input System.
-- Hand tracking depends on the headset runtime, OpenXR feature configuration, and device settings exposing a hand-tracking InputDevice.
-- The controller fallback is intended for Quest Touch controllers.
-- The script supplies wrist / controller device poses only. Finger curls, pinch gestures, hand meshes, and hand physics are not implemented.
-- A tracking-space transform must be assigned for correct world-space placement when the XR Origin is moved or rotated.
-- This source has not been compiled in Unity or tested on a Quest headset in this environment.
+The Unity Editor automation in `Assets/Editor/GlimpTagProjectBuilder.cs` attempts to:
+- Assign the OpenXR loader for Android
+- Enable Meta Quest Support
+- Enable the Oculus Touch controller interaction profile
+- Enable the Meta Quest Touch Plus controller profile
+- Enable XR Hands OpenXR features when they are present
+- Set Android ARM64, IL2CPP, and APK output settings
+
+Unity's official Meta Quest OpenXR guidance requires Meta Quest Support and a supported interaction profile. The editor script uses the same settings programmatically.
+
+## Hand-tracking notes
+
+The hand input uses `XRHandSubsystem` and the Palm joint. If the provider does not expose a Palm pose, it falls back to the hand root pose. When hand tracking is unavailable, the script uses the Touch controller grip pose.
+
+Finger curls, pinch gestures, hand meshes, haptic feedback, and full avatar hand animation are not implemented yet.
+
+## Locomotion notes
+
+When a hand is already planted against a solid surface, moving that tracked hand moves the player root in the opposite direction. First contact only corrects the hand to the surface; subsequent hand motion pushes the player. Corrections are capped to reduce sudden jumps.
+
+This is still a prototype. Surface contact, body collision, tracking-origin behavior, and comfort need real Quest testing before the movement can be called stable.
+
+## Build status
+
+The scripts have not been compiled in Unity or tested on Quest 2, Quest 3, or Quest 3S. See `CLOUD_BUILD.md` for the browser-based build path.

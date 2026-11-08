@@ -1,82 +1,125 @@
 using UnityEngine;
 
 /// <summary>
-/// Simple physics-driven hand-push locomotion prototype.
-/// Assign tracked left/right hand transforms and a Rigidbody on the player.
+/// Hand-contact locomotion prototype for GLIMP TAG.
+/// When a hand proxy touches a solid surface, moving the tracked hand moves
+/// the player body in the opposite direction while keeping the hand planted.
 /// </summary>
 [RequireComponent(typeof(Rigidbody))]
-public class GlimpTagLocomotion : MonoBehaviour
+public sealed class GlimpTagLocomotion : MonoBehaviour
 {
-    [Header("Tracked hands")]
+    [Header("Tracked hand proxies")]
     public Transform leftHand;
     public Transform rightHand;
 
-    [Header("Movement")]
-    [Min(0.01f)] public float handRadius = 0.12f;
-    [Min(0f)] public float pushMultiplier = 1.15f;
-    [Min(0f)] public float maxSpeed = 7.5f;
-    [Min(0f)] public float velocityDamping = 0.15f;
+    [Header("Contact movement")]
+    [Min(0.03f)] public float handRadius = 0.12f;
+    [Min(0.05f)] public float maxCorrectionPerStep = 0.45f;
+    [Min(0.5f)] public float maxSpeed = 8f;
     public LayerMask solidLayers = ~0;
 
+    [Header("Comfort / safety")]
+    [Min(0f)] public float bodyVelocityDamping = 0.03f;
+    public bool freezePlayerRotation = true;
+
     private Rigidbody body;
-    private Vector3 lastLeftPosition;
-    private Vector3 lastRightPosition;
-    private bool hasPreviousPositions;
+    private Vector3 previousLeft;
+    private Vector3 previousRight;
+    private bool hasHandHistory;
 
     private void Awake()
     {
         body = GetComponent<Rigidbody>();
         body.useGravity = true;
-        body.constraints = RigidbodyConstraints.FreezeRotation;
+        body.interpolation = RigidbodyInterpolation.Interpolate;
+        body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+        if (freezePlayerRotation)
+            body.constraints = RigidbodyConstraints.FreezeRotation;
+    }
+
+    private void OnEnable()
+    {
+        hasHandHistory = false;
     }
 
     private void FixedUpdate()
     {
-        if (leftHand == null || rightHand == null) return;
-
-        if (!hasPreviousPositions)
+        if (leftHand == null || rightHand == null)
         {
-            lastLeftPosition = leftHand.position;
-            lastRightPosition = rightHand.position;
-            hasPreviousPositions = true;
+            hasHandHistory = false;
             return;
         }
 
-        PushFromHand(leftHand, ref lastLeftPosition);
-        PushFromHand(rightHand, ref lastRightPosition);
+        if (!hasHandHistory)
+        {
+            previousLeft = leftHand.position;
+            previousRight = rightHand.position;
+            hasHandHistory = true;
+            return;
+        }
+
+        ApplyHandContact(leftHand, ref previousLeft);
+        ApplyHandContact(rightHand, ref previousRight);
 
         Vector3 velocity = body.velocity;
-        if (velocity.magnitude > maxSpeed)
+        if (velocity.sqrMagnitude > maxSpeed * maxSpeed)
             body.velocity = velocity.normalized * maxSpeed;
 
-        if (velocityDamping > 0f)
-            body.velocity *= 1f - Mathf.Clamp01(velocityDamping * Time.fixedDeltaTime);
+        if (bodyVelocityDamping > 0f)
+            body.velocity *= 1f - Mathf.Clamp01(bodyVelocityDamping * Time.fixedDeltaTime);
     }
 
-    private void PushFromHand(Transform hand, ref Vector3 previousPosition)
+    private void ApplyHandContact(Transform hand, ref Vector3 previousPosition)
     {
         Vector3 currentPosition = hand.position;
-        Vector3 handDelta = currentPosition - previousPosition;
+        Vector3 movement = currentPosition - previousPosition;
 
-        if (Physics.SphereCast(
-            previousPosition,
-            handRadius,
-            handDelta.sqrMagnitude > 0.000001f ? handDelta.normalized : Vector3.down,
-            out RaycastHit hit,
-            handDelta.magnitude + handRadius,
-            solidLayers,
+        if (movement.sqrMagnitude < 0.000001f)
+        {
+            previousPosition = currentPosition;
+            return;
+        }
+
+        // If the hand was already planted, move the player opposite the hand's motion.
+        if (Physics.CheckSphere(previousPosition, handRadius, solidLayers,
             QueryTriggerInteraction.Ignore))
         {
-            Vector3 push = previousPosition - currentPosition;
-            push = Vector3.ProjectOnPlane(push, hit.normal);
-            body.AddForce(push * pushMultiplier / Mathf.Max(Time.fixedDeltaTime, 0.001f), ForceMode.Acceleration);
+            MovePlayer(previousPosition - currentPosition, ref previousPosition, currentPosition);
+            return;
+        }
+
+        // First contact only corrects penetration. On the next step, the hand is planted.
+        float distance = movement.magnitude;
+        if (Physics.SphereCast(previousPosition, handRadius, movement / distance,
+            out RaycastHit hit, distance, solidLayers, QueryTriggerInteraction.Ignore))
+        {
+            Vector3 safeContact = hit.point + hit.normal * handRadius;
+            Vector3 correction = safeContact - currentPosition;
+            MovePlayer(correction, ref previousPosition, currentPosition);
+            return;
         }
 
         previousPosition = currentPosition;
     }
 
+    private void MovePlayer(Vector3 correction, ref Vector3 previousPosition, Vector3 currentPosition)
+    {
+        if (correction.sqrMagnitude < 0.000001f)
+        {
+            previousPosition = currentPosition;
+            return;
+        }
+
+        correction = Vector3.ClampMagnitude(correction, maxCorrectionPerStep);
+        body.MovePosition(body.position + correction);
+
+        // The hand proxy is parented to the player tracking space, so the body correction
+        // moves the proxy by the same amount. Store that corrected world position as history.
+        previousPosition = currentPosition + correction;
+    }
+
     public void RecenterHandHistory()
     {
-        hasPreviousPositions = false;
+        hasHandHistory = false;
     }
 }

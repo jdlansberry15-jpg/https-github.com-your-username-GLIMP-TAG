@@ -7,7 +7,6 @@ using UnityEditor.SceneManagement;
 using UnityEditor.XR.Management;
 using UnityEditor.XR.Management.Metadata;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.XR.Management;
 using UnityEngine.XR.OpenXR;
 using UnityEngine.XR.OpenXR.Features;
@@ -20,9 +19,6 @@ using UnityEngine.XR.OpenXR.Features;
 public sealed class GlimpTagProjectBuilder : IPreprocessBuildWithReport
 {
     private const string ScenePath = "Assets/Scenes/GLIMP_TAG.unity";
-    private const string XrSettingsFolder = "Assets/XR";
-    private const string XrSettingsAsset = "Assets/XR/XRGeneralSettingsPerBuildTarget.asset";
-
     private static bool isPreparing;
 
     static GlimpTagProjectBuilder()
@@ -79,6 +75,7 @@ public sealed class GlimpTagProjectBuilder : IPreprocessBuildWithReport
 
         string parent = Path.GetDirectoryName(path)?.Replace("\\", "/");
         string folderName = Path.GetFileName(path);
+
         if (!string.IsNullOrEmpty(parent) && !AssetDatabase.IsValidFolder(parent))
             EnsureFolder(parent);
 
@@ -140,72 +137,55 @@ public sealed class GlimpTagProjectBuilder : IPreprocessBuildWithReport
     {
         const BuildTargetGroup group = BuildTargetGroup.Android;
 
-        if (!EditorBuildSettings.TryGetConfigObject(
-            XRGeneralSettings.k_SettingsKey,
-            out XRGeneralSettingsPerBuildTarget perTarget) || perTarget == null)
+        // XR Plug-in Management creates its per-platform settings after package import.
+        XRGeneralSettings generalSettings =
+            XRGeneralSettingsPerBuildTarget.XRGeneralSettingsForBuildTarget(BuildTarget.Android);
+
+        if (generalSettings == null || generalSettings.AssignedSettings == null)
         {
-            EnsureFolder(XrSettingsFolder);
-            perTarget = ScriptableObject.CreateInstance<XRGeneralSettingsPerBuildTarget>();
-            AssetDatabase.CreateAsset(perTarget, XrSettingsAsset);
-            EditorBuildSettings.AddConfigObject(
-                XRGeneralSettings.k_SettingsKey, perTarget, true);
+            Debug.LogWarning("GLIMP TAG: XR Plug-in Management settings are not ready yet. Reopen the project after package resolution to retry.");
+            return;
         }
 
-        if (!perTarget.HasSettingsForBuildTarget(group))
-            perTarget.CreateDefaultSettingsForBuildTarget(group);
+        XRManagerSettings manager = generalSettings.AssignedSettings;
+        bool assigned = XRPackageMetadataStore.AssignLoader(
+            manager, "UnityEngine.XR.OpenXR.OpenXRLoader", group);
 
-        if (!perTarget.HasManagerSettingsForBuildTarget(group))
-            perTarget.CreateDefaultManagerSettingsForBuildTarget(group);
+        if (!assigned)
+            Debug.LogWarning("GLIMP TAG: OpenXR loader could not be assigned automatically. Check XR Plug-in Management settings.");
 
-        XRManagerSettings manager = perTarget.ManagerSettingsForBuildTarget(group);
-        if (manager != null)
-        {
-            bool assigned = XRPackageMetadataStore.AssignLoader(
-                manager, "UnityEngine.XR.OpenXR.OpenXRLoader", group);
-
-            if (!assigned)
-                Debug.LogWarning("GLIMP TAG: OpenXR loader could not be assigned automatically. Check XR Plug-in Management settings.");
-            EditorUtility.SetDirty(manager);
-        }
-
-        XRGeneralSettings generalSettings = perTarget.SettingsForBuildTarget(group);
-        if (generalSettings != null)
-        {
-            generalSettings.InitManagerOnStart = true;
-            EditorUtility.SetDirty(generalSettings);
-        }
+        generalSettings.InitManagerOnStart = true;
+        EditorUtility.SetDirty(manager);
+        EditorUtility.SetDirty(generalSettings);
 
         OpenXRSettings openXrSettings = OpenXRSettings.GetSettingsForBuildTargetGroup(group);
-        if (openXrSettings != null)
+        if (openXrSettings == null)
         {
-            OpenXRFeature[] features = openXrSettings.GetFeatures<OpenXRFeature>();
-            for (int i = 0; i < features.Length; i++)
+            Debug.LogWarning("GLIMP TAG: OpenXR settings asset is not available yet. The project builder will retry on the next Editor load.");
+            return;
+        }
+
+        OpenXRFeature[] features = openXrSettings.GetFeatures<OpenXRFeature>();
+        for (int i = 0; i < features.Length; i++)
+        {
+            OpenXRFeature feature = features[i];
+            if (feature == null)
+                continue;
+
+            string typeName = feature.GetType().Name;
+            bool requiredForQuest = typeName == "MetaQuestFeature" ||
+                typeName == "OculusTouchControllerProfile" ||
+                typeName == "MetaQuestTouchPlusControllerProfile" ||
+                typeName == "HandTracking" ||
+                typeName == "MetaHandTrackingAim";
+
+            if (requiredForQuest)
             {
-                OpenXRFeature feature = features[i];
-                if (feature == null)
-                    continue;
-
-                string typeName = feature.GetType().Name;
-                bool requiredForQuest = typeName == "MetaQuestFeature" ||
-                    typeName == "OculusTouchControllerProfile" ||
-                    typeName == "MetaQuestTouchPlusControllerProfile" ||
-                    typeName == "HandTracking" ||
-                    typeName == "MetaHandTrackingAim";
-
-                if (requiredForQuest)
-                {
-                    feature.enabled = true;
-                    EditorUtility.SetDirty(feature);
-                }
+                feature.enabled = true;
+                EditorUtility.SetDirty(feature);
             }
-
-            EditorUtility.SetDirty(openXrSettings);
-        }
-        else
-        {
-            Debug.LogWarning("GLIMP TAG: OpenXR settings asset was not available yet. The project builder will retry on the next Editor load.");
         }
 
-        EditorUtility.SetDirty(perTarget);
+        EditorUtility.SetDirty(openXrSettings);
     }
 }

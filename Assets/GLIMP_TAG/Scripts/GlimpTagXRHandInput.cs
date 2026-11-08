@@ -1,38 +1,46 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR;
+using UnityEngine.XR.Hands;
 
 /// <summary>
-/// Feeds Quest controller or tracked-hand poses into dedicated hand target transforms.
-/// Assign the XR Origin's tracking-space transform and two proxy targets.
-/// The proxy targets can then be assigned to GlimpTagLocomotion.leftHand/rightHand.
+/// Drives dedicated hand proxy transforms from XR Hands when available,
+/// falling back to Quest Touch controller poses.
+/// The proxy transforms should be children of the player's tracking-space object.
 /// </summary>
 public sealed class GlimpTagXRHandInput : MonoBehaviour
 {
-    [Header("XR tracking space")]
-    [Tooltip("Usually the XR Origin's Camera Offset / tracking-space transform.")]
+    [Header("Tracking space")]
     [SerializeField] private Transform trackingSpace;
 
-    [Header("Dedicated hand proxy targets")]
-    [Tooltip("A separate proxy transform, not the controller object itself.")]
+    [Header("Hand proxy targets")]
     [SerializeField] private Transform leftHandTarget;
-    [Tooltip("A separate proxy transform, not the controller object itself.")]
     [SerializeField] private Transform rightHandTarget;
 
-    [Header("Device preference")]
-    [Tooltip("Use tracked hands when available; otherwise fall back to Touch controllers.")]
+    [Header("Input preference")]
     [SerializeField] private bool preferHandTracking = true;
-
-    [Tooltip("Write device connection changes to the Unity Console.")]
     [SerializeField] private bool logDeviceChanges;
 
     private readonly List<InputDevice> deviceBuffer = new List<InputDevice>(8);
-    private InputDevice leftDevice;
-    private InputDevice rightDevice;
+    private readonly List<XRHandSubsystem> handSubsystems = new List<XRHandSubsystem>(2);
+
+    private InputDevice leftController;
+    private InputDevice rightController;
+    private XRHandSubsystem handSubsystem;
     private float nextDeviceScanTime;
+    private float nextHandSubsystemScanTime;
 
     public bool LeftTracked { get; private set; }
     public bool RightTracked { get; private set; }
+
+    public void Configure(Transform space, Transform leftTarget, Transform rightTarget)
+    {
+        trackingSpace = space;
+        leftHandTarget = leftTarget;
+        rightHandTarget = rightTarget;
+        RefreshDevices();
+        RefreshHandSubsystem();
+    }
 
     private void OnEnable()
     {
@@ -40,6 +48,7 @@ public sealed class GlimpTagXRHandInput : MonoBehaviour
         InputDevices.deviceDisconnected += OnDeviceChanged;
         InputDevices.deviceConfigChanged += OnDeviceChanged;
         RefreshDevices();
+        RefreshHandSubsystem();
     }
 
     private void OnDisable()
@@ -47,6 +56,7 @@ public sealed class GlimpTagXRHandInput : MonoBehaviour
         InputDevices.deviceConnected -= OnDeviceChanged;
         InputDevices.deviceDisconnected -= OnDeviceChanged;
         InputDevices.deviceConfigChanged -= OnDeviceChanged;
+
         SetTargetActive(leftHandTarget, false);
         SetTargetActive(rightHandTarget, false);
         LeftTracked = false;
@@ -55,15 +65,16 @@ public sealed class GlimpTagXRHandInput : MonoBehaviour
 
     private void Update()
     {
-        // Retry periodically while the XR runtime is starting or devices are changing.
-        if ((!leftDevice.isValid || !rightDevice.isValid) &&
+        if ((!leftController.isValid || !rightController.isValid) &&
             Time.unscaledTime >= nextDeviceScanTime)
-        {
             RefreshDevices();
-        }
 
-        LeftTracked = UpdateHandPose(leftDevice, leftHandTarget);
-        RightTracked = UpdateHandPose(rightDevice, rightHandTarget);
+        if ((handSubsystem == null || !handSubsystem.running) &&
+            Time.unscaledTime >= nextHandSubsystemScanTime)
+            RefreshHandSubsystem();
+
+        LeftTracked = UpdateHand(Handedness.Left, leftController, leftHandTarget);
+        RightTracked = UpdateHand(Handedness.Right, rightController, rightHandTarget);
     }
 
     private void OnDeviceChanged(InputDevice device)
@@ -76,32 +87,20 @@ public sealed class GlimpTagXRHandInput : MonoBehaviour
 
     private void RefreshDevices()
     {
-        leftDevice = FindDevice(InputDeviceCharacteristics.Left, XRNode.LeftHand);
-        rightDevice = FindDevice(InputDeviceCharacteristics.Right, XRNode.RightHand);
+        leftController = FindController(InputDeviceCharacteristics.Left, XRNode.LeftHand);
+        rightController = FindController(InputDeviceCharacteristics.Right, XRNode.RightHand);
         nextDeviceScanTime = Time.unscaledTime + 0.5f;
     }
 
-    private InputDevice FindDevice(InputDeviceCharacteristics side, XRNode node)
+    private InputDevice FindController(InputDeviceCharacteristics side, XRNode node)
     {
-        InputDeviceCharacteristics preferred = preferHandTracking
-            ? InputDeviceCharacteristics.HandTracking
-            : InputDeviceCharacteristics.Controller;
-
-        InputDeviceCharacteristics fallback = preferHandTracking
-            ? InputDeviceCharacteristics.Controller
-            : InputDeviceCharacteristics.HandTracking;
-
         deviceBuffer.Clear();
-        InputDevices.GetDevicesWithCharacteristics(side | preferred, deviceBuffer);
-        InputDevice selected = FirstValidDevice();
-        if (selected.isValid) return selected;
+        InputDevices.GetDevicesWithCharacteristics(
+            side | InputDeviceCharacteristics.Controller, deviceBuffer);
 
-        deviceBuffer.Clear();
-        InputDevices.GetDevicesWithCharacteristics(side | fallback, deviceBuffer);
-        selected = FirstValidDevice();
-        if (selected.isValid) return selected;
+        InputDevice found = FirstValidDevice();
+        if (found.isValid) return found;
 
-        // Some XR providers expose a hand node without all expected characteristic flags.
         deviceBuffer.Clear();
         InputDevices.GetDevicesAtXRNode(node, deviceBuffer);
         return FirstValidDevice();
@@ -118,32 +117,95 @@ public sealed class GlimpTagXRHandInput : MonoBehaviour
         return default;
     }
 
-    private bool UpdateHandPose(InputDevice device, Transform target)
+    private void RefreshHandSubsystem()
     {
-        if (target == null || !device.isValid)
+        handSubsystems.Clear();
+        SubsystemManager.GetSubsystems(handSubsystems);
+
+        handSubsystem = null;
+        for (int i = 0; i < handSubsystems.Count; i++)
         {
-            SetTargetActive(target, false);
-            return false;
+            if (handSubsystems[i] != null && handSubsystems[i].running)
+            {
+                handSubsystem = handSubsystems[i];
+                break;
+            }
         }
 
-        if (!device.TryGetFeatureValue(CommonUsages.devicePosition, out Vector3 localPosition) ||
-            !device.TryGetFeatureValue(CommonUsages.deviceRotation, out Quaternion localRotation))
-        {
-            SetTargetActive(target, false);
+        nextHandSubsystemScanTime = Time.unscaledTime + 1f;
+    }
+
+    private bool UpdateHand(Handedness handedness, InputDevice controller, Transform target)
+    {
+        if (target == null)
             return false;
+
+        if (preferHandTracking && TryGetTrackedHandPose(handedness, out Pose handPose))
+        {
+            ApplyPose(target, handPose);
+            return true;
         }
 
-        Vector3 worldPosition = trackingSpace != null
-            ? trackingSpace.TransformPoint(localPosition)
-            : localPosition;
+        if (TryGetControllerPose(controller, out Pose controllerPose))
+        {
+            ApplyPose(target, controllerPose);
+            return true;
+        }
 
-        Quaternion worldRotation = trackingSpace != null
-            ? trackingSpace.rotation * localRotation
-            : localRotation;
+        SetTargetActive(target, false);
+        return false;
+    }
 
-        target.SetPositionAndRotation(worldPosition, worldRotation);
-        SetTargetActive(target, true);
+    private bool TryGetTrackedHandPose(Handedness handedness, out Pose pose)
+    {
+        pose = default;
+        if (handSubsystem == null || !handSubsystem.running)
+            return false;
+
+        XRHand hand = handedness == Handedness.Left
+            ? handSubsystem.leftHand
+            : handSubsystem.rightHand;
+
+        if (!hand.isTracked)
+            return false;
+
+        XRHandJoint palm = hand.GetJoint(XRHandJointID.Palm);
+        if (palm.TryGetPose(out pose))
+            return true;
+
+        // Wrist root pose is a safe fallback if the provider does not expose the palm joint.
+        pose = hand.rootPose;
         return true;
+    }
+
+    private static bool TryGetControllerPose(InputDevice device, out Pose pose)
+    {
+        pose = default;
+        if (!device.isValid)
+            return false;
+
+        if (!device.TryGetFeatureValue(CommonUsages.devicePosition, out Vector3 position) ||
+            !device.TryGetFeatureValue(CommonUsages.deviceRotation, out Quaternion rotation))
+            return false;
+
+        pose = new Pose(position, rotation);
+        return true;
+    }
+
+    private void ApplyPose(Transform target, Pose localPose)
+    {
+        if (trackingSpace != null)
+        {
+            target.SetPositionAndRotation(
+                trackingSpace.TransformPoint(localPose.position),
+                trackingSpace.rotation * localPose.rotation);
+        }
+        else
+        {
+            target.SetPositionAndRotation(localPose.position, localPose.rotation);
+        }
+
+        SetTargetActive(target, true);
     }
 
     private static void SetTargetActive(Transform target, bool active)

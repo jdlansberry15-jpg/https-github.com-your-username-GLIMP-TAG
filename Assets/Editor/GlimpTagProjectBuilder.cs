@@ -19,6 +19,7 @@ using UnityEngine.XR.OpenXR.Features;
 public sealed class GlimpTagProjectBuilder : IPreprocessBuildWithReport
 {
     private const string ScenePath = "Assets/Scenes/GLIMP_TAG.unity";
+    private const string XrSettingsAssetPath = "Assets/XR/Settings/XRGeneralSettingsPerBuildTarget.asset";
     private static bool isPreparing;
 
     static GlimpTagProjectBuilder()
@@ -136,17 +137,42 @@ public sealed class GlimpTagProjectBuilder : IPreprocessBuildWithReport
     {
         const BuildTargetGroup group = BuildTargetGroup.Android;
 
-        // XR Plug-in Management creates its per-platform settings after package import.
-        XRGeneralSettings generalSettings =
-            XRGeneralSettingsPerBuildTarget.XRGeneralSettingsForBuildTarget(BuildTargetGroup.Android);
-
-        if (generalSettings == null || generalSettings.AssignedSettings == null)
+        XRGeneralSettingsPerBuildTarget perTarget;
+        if (!EditorBuildSettings.TryGetConfigObject(
+            XRGeneralSettings.k_SettingsKey, out perTarget) || perTarget == null)
         {
-            Debug.LogWarning("GLIMP TAG: XR Plug-in Management settings are not ready yet. Reopen the project after package resolution to retry.");
-            return;
+            string[] existingAssets = AssetDatabase.FindAssets("t:XRGeneralSettingsPerBuildTarget");
+            if (existingAssets.Length > 0)
+            {
+                string assetPath = AssetDatabase.GUIDToAssetPath(existingAssets[0]);
+                perTarget = AssetDatabase.LoadAssetAtPath<XRGeneralSettingsPerBuildTarget>(assetPath);
+            }
+
+            if (perTarget == null)
+            {
+                EnsureFolder("Assets/XR/Settings");
+                perTarget = ScriptableObject.CreateInstance<XRGeneralSettingsPerBuildTarget>();
+                AssetDatabase.CreateAsset(perTarget, XrSettingsAssetPath);
+            }
+
+            EditorBuildSettings.AddConfigObject(
+                XRGeneralSettings.k_SettingsKey, perTarget, true);
         }
 
-        XRManagerSettings manager = generalSettings.AssignedSettings;
+        if (!perTarget.HasSettingsForBuildTarget(group))
+            perTarget.CreateDefaultSettingsForBuildTarget(group);
+
+        if (!perTarget.HasManagerSettingsForBuildTarget(group))
+            perTarget.CreateDefaultManagerSettingsForBuildTarget(group);
+
+        XRGeneralSettings generalSettings = perTarget.SettingsForBuildTarget(group);
+        XRManagerSettings manager = perTarget.ManagerSettingsForBuildTarget(group);
+
+        if (generalSettings == null || manager == null)
+        {
+            Debug.LogWarning("GLIMP TAG: Could not create Android XR settings. Check XR Plug-in Management package resolution.");
+            return;
+        }
         bool assigned = XRPackageMetadataStore.AssignLoader(
             manager, "UnityEngine.XR.OpenXR.OpenXRLoader", group);
 

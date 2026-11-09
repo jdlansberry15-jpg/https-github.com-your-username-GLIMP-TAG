@@ -56,7 +56,6 @@ public sealed class GlimpTagProjectBuilder : IPreprocessBuildWithReport
             ConfigureAndroidPlayer();
             ConfigureOpenXR();
             AssetDatabase.SaveAssets();
-            AssetDatabase.Refresh();
         }
         catch (System.Exception exception)
         {
@@ -172,6 +171,7 @@ public sealed class GlimpTagProjectBuilder : IPreprocessBuildWithReport
             return;
         }
 
+        openXrSettings.renderMode = OpenXRSettings.RenderMode.SinglePassInstanced;
         OpenXRFeature[] features = openXrSettings.GetFeatures<OpenXRFeature>();
         for (int i = 0; i < features.Length; i++)
         {

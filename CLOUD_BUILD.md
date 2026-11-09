@@ -41,13 +41,13 @@ If the build configuration asks for Android signing credentials, use a keystore 
 
 After Unity Build Automation reports a successful build:
 1. Download the APK artifact from the build result page.
-2. Open [SideQuest's web installer](https://sdq.st/download) in Chrome on the Chromebook.
-3. Connect the Quest with a USB-C cable that supports data.
-4. Put on the headset and accept the **Allow USB debugging** prompt.
-5. Choose the downloaded GLIMP TAG APK in the web installer and install it.
+2. Open [WebADB](https://webadb.online/) in Chrome on the Chromebook.
+3. Connect the Quest with a USB-C data cable and choose **Connect device** in WebADB.
+4. Select the Quest in Chrome's USB picker and accept the **Allow USB debugging** prompt inside the headset.
+5. Open WebADB's **Install APK** tool, choose the downloaded GLIMP TAG APK, and install it.
 6. On the headset, open Apps and choose **Unknown Sources** to launch the test app.
 
-The user already has Quest Developer Mode enabled. The USB debugging authorization prompt and a data-capable cable are still required for browser sideloading.
+WebADB advertises one-click APK installation in Chrome through WebUSB, without installing local ADB tools or desktop drivers. The user already has Quest Developer Mode enabled; a data-capable cable, Chrome USB permission, and the headset's debugging approval are still required. SideQuest also has a Chromebook-compatible web installer at [sdq.st/download](https://sdq.st/download), mainly for installing its in-VR app.
 
 ## Important limitations
 

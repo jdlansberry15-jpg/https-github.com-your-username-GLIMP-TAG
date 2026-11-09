@@ -139,7 +139,7 @@ public sealed class GlimpTagProjectBuilder : IPreprocessBuildWithReport
 
         // XR Plug-in Management creates its per-platform settings after package import.
         XRGeneralSettings generalSettings =
-            XRGeneralSettingsPerBuildTarget.XRGeneralSettingsForBuildTarget(BuildTarget.Android);
+            XRGeneralSettingsPerBuildTarget.XRGeneralSettingsForBuildTarget(BuildTargetGroup.Android);
 
         if (generalSettings == null || generalSettings.AssignedSettings == null)
         {

@@ -33,7 +33,7 @@ The Editor automation attempts to create the scene, add it to Build Settings, as
 
 ## Cost and signing
 
-Unity's published 2026 DevOps pricing includes monthly free usage for several builder types, but build time depends on the selected machine and project. Check the Unity Dashboard's current usage and billing page before starting a build. Do not assume every build will remain free.
+Unity's published 2026 free DevOps allocation includes 200 Windows Micro minutes, 100 Linux Micro minutes, 100 Mac Standard minutes, 25 GB of storage, and 100 GB of monthly egress per organization. The actual minutes charged depend on the builder selected for the Android configuration and how long the build takes. Check the Dashboard's current usage before starting. If free limits are exhausted, Unity requires pay-as-you-go billing to continue; without a payment method, service can be blocked.
 
 If the build configuration asks for Android signing credentials, use a keystore that you control and keep its password private. Do not put signing passwords or private keys in GitHub source files. For an early sideload test, use the signing option Unity Build Automation provides for development builds if available.
 

@@ -123,7 +123,6 @@ public sealed class GlimpTagProjectBuilder : IPreprocessBuildWithReport
         PlayerSettings.SetManagedStrippingLevel(BuildTargetGroup.Android, ManagedStrippingLevel.Low);
         PlayerSettings.defaultInterfaceOrientation = UIOrientation.LandscapeLeft;
         PlayerSettings.colorSpace = ColorSpace.Gamma;
-        PlayerSettings.runInBackground = true;
 
         PlayerSettings.Android.bundleVersionCode = 1;
         PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;

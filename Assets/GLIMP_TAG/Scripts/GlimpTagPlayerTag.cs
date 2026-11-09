@@ -1,8 +1,8 @@
 using UnityEngine;
 
 /// <summary>
-/// Local prototype for tagging. Put a trigger collider on the tagger's hand
-/// and assign the player root for both players. This is not networked yet.
+/// Local prototype tag state. Attach this to each player root.
+/// Any collider beneath another player root can register a touch.
 /// </summary>
 public class GlimpTagPlayerTag : MonoBehaviour
 {
@@ -12,10 +12,9 @@ public class GlimpTagPlayerTag : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!other.CompareTag("PlayerHand")) return;
-
         GlimpTagPlayerTag target = other.GetComponentInParent<GlimpTagPlayerTag>();
-        if (target == null || target == this || target.isTagged) return;
+        if (target == null || target == this || target.isTagged)
+            return;
 
         if (gameMode != null)
             gameMode.TryTag(this, target);

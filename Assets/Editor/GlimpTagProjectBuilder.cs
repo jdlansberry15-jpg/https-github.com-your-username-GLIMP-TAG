@@ -154,7 +154,14 @@ public sealed class GlimpTagProjectBuilder : IPreprocessBuildWithReport
         if (!assigned)
             Debug.LogWarning("GLIMP TAG: OpenXR loader could not be assigned automatically. Check XR Plug-in Management settings.");
 
-        generalSettings.InitManagerOnStart = true;
+        SerializedObject generalSerialized = new SerializedObject(generalSettings);
+        SerializedProperty initializeOnStart = generalSerialized.FindProperty("m_InitManagerOnStart");
+        if (initializeOnStart != null)
+        {
+            initializeOnStart.boolValue = true;
+            generalSerialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
         EditorUtility.SetDirty(manager);
         EditorUtility.SetDirty(generalSettings);
 

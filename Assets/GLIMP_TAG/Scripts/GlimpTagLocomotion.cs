@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// Hand-contact locomotion prototype for GLIMP TAG.
-/// When a hand proxy touches a solid surface, moving the tracked hand moves
+/// When a hand proxy touches a solid surface, moving that tracked hand moves
 /// the player body in the opposite direction while keeping the hand planted.
 /// </summary>
 [RequireComponent(typeof(Rigidbody))]
@@ -58,8 +58,26 @@ public sealed class GlimpTagLocomotion : MonoBehaviour
             return;
         }
 
-        ApplyHandContact(leftHand, ref previousLeft);
-        ApplyHandContact(rightHand, ref previousRight);
+        Vector3 leftNow = leftHand.position;
+        Vector3 rightNow = rightHand.position;
+
+        // Solve the left hand first, then account for that same body movement
+        // when testing the right hand. This avoids a false second push.
+        Vector3 leftCorrection = GetHandCorrection(previousLeft, leftNow);
+        Vector3 rightAfterLeft = rightNow + leftCorrection;
+        Vector3 previousRightAfterLeft = previousRight + leftCorrection;
+        Vector3 rightCorrection = GetHandCorrection(previousRightAfterLeft, rightAfterLeft);
+
+        Vector3 appliedCorrection = Vector3.ClampMagnitude(
+            leftCorrection + rightCorrection, maxCorrectionPerStep);
+
+        if (appliedCorrection.sqrMagnitude > 0.000001f)
+            body.MovePosition(body.position + appliedCorrection);
+
+        // Both hand proxies are children of the tracking space, so both shift
+        // with the player body. Keep both history positions in that new space.
+        previousLeft = leftNow + appliedCorrection;
+        previousRight = rightNow + appliedCorrection;
 
         Vector3 velocity = body.velocity;
         if (velocity.sqrMagnitude > maxSpeed * maxSpeed)
@@ -69,53 +87,29 @@ public sealed class GlimpTagLocomotion : MonoBehaviour
             body.velocity *= 1f - Mathf.Clamp01(bodyVelocityDamping * Time.fixedDeltaTime);
     }
 
-    private void ApplyHandContact(Transform hand, ref Vector3 previousPosition)
+    private Vector3 GetHandCorrection(Vector3 previousPosition, Vector3 currentPosition)
     {
-        Vector3 currentPosition = hand.position;
         Vector3 movement = currentPosition - previousPosition;
-
         if (movement.sqrMagnitude < 0.000001f)
-        {
-            previousPosition = currentPosition;
-            return;
-        }
+            return Vector3.zero;
 
-        // If the hand was already planted, move the player opposite the hand's motion.
-        if (Physics.CheckSphere(previousPosition, handRadius, solidLayers,
-            QueryTriggerInteraction.Ignore))
-        {
-            MovePlayer(previousPosition - currentPosition, ref previousPosition, currentPosition);
-            return;
-        }
+        // Only keep a hand planted while its current pose is still in contact.
+        if (Physics.CheckSphere(currentPosition, handRadius * 1.05f,
+            solidLayers, QueryTriggerInteraction.Ignore))
+            return Vector3.ClampMagnitude(previousPosition - currentPosition,
+                maxCorrectionPerStep);
 
-        // First contact only corrects penetration. On the next step, the hand is planted.
+        // First contact corrects the proxy to the surface without teleporting the player.
         float distance = movement.magnitude;
         if (Physics.SphereCast(previousPosition, handRadius, movement / distance,
             out RaycastHit hit, distance, solidLayers, QueryTriggerInteraction.Ignore))
         {
-            Vector3 safeContact = hit.point + hit.normal * handRadius;
-            Vector3 correction = safeContact - currentPosition;
-            MovePlayer(correction, ref previousPosition, currentPosition);
-            return;
+            Vector3 safeContact = hit.point + hit.normal * (handRadius * 0.98f);
+            return Vector3.ClampMagnitude(safeContact - currentPosition,
+                maxCorrectionPerStep);
         }
 
-        previousPosition = currentPosition;
-    }
-
-    private void MovePlayer(Vector3 correction, ref Vector3 previousPosition, Vector3 currentPosition)
-    {
-        if (correction.sqrMagnitude < 0.000001f)
-        {
-            previousPosition = currentPosition;
-            return;
-        }
-
-        correction = Vector3.ClampMagnitude(correction, maxCorrectionPerStep);
-        body.MovePosition(body.position + correction);
-
-        // The hand proxy is parented to the player tracking space, so the body correction
-        // moves the proxy by the same amount. Store that corrected world position as history.
-        previousPosition = currentPosition + correction;
+        return Vector3.zero;
     }
 
     public void RecenterHandHistory()

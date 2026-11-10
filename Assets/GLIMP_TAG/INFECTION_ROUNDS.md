@@ -7,8 +7,9 @@ This increment adds a shared server-authoritative infection round loop to the ex
 - Picks one random player as the first infected.
 - Lets an infected player's hand trigger request a tag.
 - Checks on the server that the caller owns the player object, is infected, the target is not infected, and the two player roots are within the configured tag distance.
-- Synchronizes infection state, round number, player count, infected count, and round timer.
+- Synchronizes infection state, round number, player count, infected count, and the round timer (sent as integer seconds to avoid a per-frame network update).
 - Ends when everyone is infected or the timer expires, pauses briefly, then starts another round.
+- Changes infected avatars to a bright orange-red tint.
 - Shows a basic screen-space round HUD.
 
 ## Required network setup

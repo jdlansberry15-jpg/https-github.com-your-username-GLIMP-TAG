@@ -2,28 +2,34 @@ using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
-/// Server-authoritative network tag trigger prototype.
-/// Put on a trigger collider belonging to the player's tagging hand.
-/// The other player's hand collider must have a GlimpTagNetworkPlayer in its parents.
+/// Place on each player's hand trigger collider beneath the player's root
+/// NetworkObject. The local owner requests a tag; the server validates it.
 /// </summary>
 [RequireComponent(typeof(Collider))]
 public class GlimpTagNetworkTagger : NetworkBehaviour
 {
     private void Reset()
     {
-        GetComponent<Collider>().isTrigger = true;
+        Collider handCollider = GetComponent<Collider>();
+        handCollider.isTrigger = true;
     }
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!IsServer) return;
-
-        GlimpTagNetworkPlayer target = other.GetComponentInParent<GlimpTagNetworkPlayer>();
         GlimpTagNetworkPlayer tagger = GetComponentInParent<GlimpTagNetworkPlayer>();
+        GlimpTagNetworkPlayer target = other.GetComponentInParent<GlimpTagNetworkPlayer>();
 
-        if (target == null || tagger == null || target == tagger) return;
-        if (!tagger.IsTagged.Value || target.IsTagged.Value) return;
+        if (tagger == null || target == null || tagger == target)
+            return;
 
-        target.IsTagged.Value = true;
+        if (!tagger.IsTagged.Value || target.IsTagged.Value)
+            return;
+
+        // Client-owned hand contact sends a request from the player's
+        // NetworkObject. RpcInvokePermission.Owner rejects other clients.
+        if (tagger.IsOwner)
+            tagger.RequestTagRpc(target.OwnerClientId);
+        else if (tagger.IsServer)
+            tagger.TryTagTargetOnServer(target.OwnerClientId, tagger.OwnerClientId);
     }
 }

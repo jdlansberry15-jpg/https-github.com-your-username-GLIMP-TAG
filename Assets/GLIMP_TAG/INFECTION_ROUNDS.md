@@ -21,6 +21,7 @@ This increment adds a shared server-authoritative infection round loop to the ex
 6. Configure the Unity Transport connection before testing with two devices or two app instances.
 
 ## Security and testing limitations
+- This implementation uses the host's PlayerObject as the shared round coordinator and assumes a StartHost session. Dedicated-server mode needs a separate scene NetworkObject coordinator.
 - Owner-authoritative transforms trust each player's client to report its own movement. The server's root-distance check is only a coarse tag sanity check, not anti-cheat. Add server-side movement validation before public/competitive sessions.
 - Accurate hand contact still depends on correctly synchronized player rigs and hand colliders.
 - The current runtime bootstrap creates a local XR test rig; it does not yet create/register a production network player prefab. That prefab/rig integration is still required before these round scripts can run in a real multiplayer session.

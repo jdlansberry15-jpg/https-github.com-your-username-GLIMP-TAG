@@ -32,7 +32,7 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
         Color.white, NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server);
 
-    // These four variables are authoritative on the host's player object.
+    // These variables are authoritative on the host's player object.
     // Every client reads the host player's copy for the shared round HUD.
     public NetworkVariable<int> RoundPhase = new NetworkVariable<int>(
         WaitingForPlayers, NetworkVariableReadPermission.Everyone,
@@ -42,8 +42,9 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
         0, NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server);
 
-    public NetworkVariable<float> RoundTimeRemaining = new NetworkVariable<float>(
-        0f, NetworkVariableReadPermission.Everyone,
+    // Integer seconds avoid sending a changed timer value every rendered frame.
+    public NetworkVariable<int> RoundSecondsRemaining = new NetworkVariable<int>(
+        0, NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server);
 
     public NetworkVariable<int> PlayerCount = new NetworkVariable<int>(
@@ -56,6 +57,7 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
 
     private readonly MaterialPropertyBlock propertyBlock = new MaterialPropertyBlock();
     private float endPauseRemaining;
+    private float roundTickAccumulator;
 
     public override void OnNetworkSpawn()
     {
@@ -144,9 +146,10 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
             {
                 SetAllPlayersTagged(players, false);
                 RoundPhase.Value = WaitingForPlayers;
-                RoundTimeRemaining.Value = 0f;
+                RoundSecondsRemaining.Value = 0;
                 InfectedCount.Value = 0;
                 endPauseRemaining = 0f;
+                roundTickAccumulator = 0f;
             }
             return;
         }
@@ -159,14 +162,20 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
 
         if (RoundPhase.Value == RoundActive)
         {
-            RoundTimeRemaining.Value = Mathf.Max(0f, RoundTimeRemaining.Value - deltaTime);
+            roundTickAccumulator += deltaTime;
+            while (roundTickAccumulator >= 1f && RoundSecondsRemaining.Value > 0)
+            {
+                RoundSecondsRemaining.Value--;
+                roundTickAccumulator -= 1f;
+            }
+
             RefreshInfectedCount(players);
 
             if (InfectedCount.Value >= players.Count)
             {
                 FinishRound(InfectionTeamWon);
             }
-            else if (RoundTimeRemaining.Value <= 0f)
+            else if (RoundSecondsRemaining.Value <= 0)
             {
                 FinishRound(SurvivorsWon);
             }
@@ -190,10 +199,11 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
         players[firstInfectedIndex].IsTagged.Value = true;
 
         RoundNumber.Value++;
-        RoundTimeRemaining.Value = roundDurationSeconds;
+        RoundSecondsRemaining.Value = Mathf.CeilToInt(roundDurationSeconds);
         InfectedCount.Value = 1;
         PlayerCount.Value = players.Count;
         endPauseRemaining = 0f;
+        roundTickAccumulator = 0f;
         RoundPhase.Value = RoundActive;
     }
 

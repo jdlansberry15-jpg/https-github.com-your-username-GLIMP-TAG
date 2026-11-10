@@ -53,12 +53,10 @@ public sealed class GlimpTagNetworkRoundHud : MonoBehaviour
 
         string details = "Round " + coordinator.RoundNumber.Value +
             "   Players " + coordinator.PlayerCount.Value +
-            "   Infected " + coordinator.InfectedCount.Value + "
-";
+            "   Infected " + coordinator.InfectedCount.Value + "\n";
 
         if (coordinator.RoundPhase.Value == GlimpTagNetworkPlayer.RoundActive)
-            details += "Time: " + Mathf.CeilToInt(coordinator.RoundTimeRemaining.Value) + "s
-";
+            details += "Time: " + coordinator.RoundSecondsRemaining.Value + "s\n";
 
         if (localPlayer != null)
             details += localPlayer.IsTagged.Value ? "YOU ARE INFECTED" : "YOU ARE SAFE";

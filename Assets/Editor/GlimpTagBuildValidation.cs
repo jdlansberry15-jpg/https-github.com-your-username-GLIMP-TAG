@@ -161,7 +161,8 @@ public sealed class GlimpTagBuildValidation : IPreprocessBuildWithReport
             ValidateSerializedReferences(rig, errors,
                 "playerBody", "localCamera", "localAudioListener", "trackingSpace",
                 "leftHandSource", "rightHandSource", "leftHandTrigger", "rightHandTrigger",
-                "leftHandTagger", "rightHandTagger", "handInput", "cameraDriver",
+                "leftHandTagger", "rightHandTagger", "leftHandSourceRenderer",
+                "rightHandSourceRenderer", "handInput", "cameraDriver",
                 "locomotion", "startMenu", "remoteAvatarRoot");
         }
 

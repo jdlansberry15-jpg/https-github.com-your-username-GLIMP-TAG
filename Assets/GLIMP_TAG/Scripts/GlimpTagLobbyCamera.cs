@@ -7,6 +7,8 @@ using UnityEngine;
 /// </summary>
 public sealed class GlimpTagLobbyCamera : MonoBehaviour
 {
+    private bool isRemoving;
+
     private void Update()
     {
         NetworkManager manager = NetworkManager.Singleton;
@@ -22,6 +24,11 @@ public sealed class GlimpTagLobbyCamera : MonoBehaviour
 
     public void RemoveNow()
     {
+        if (isRemoving)
+            return;
+
+        isRemoving = true;
+
         Camera lobbyCamera = GetComponent<Camera>();
         if (lobbyCamera != null)
             lobbyCamera.enabled = false;

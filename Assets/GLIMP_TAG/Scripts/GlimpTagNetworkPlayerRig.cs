@@ -92,6 +92,10 @@ public sealed class GlimpTagNetworkPlayerRig : NetworkBehaviour
 
     private void ConfigureLocalOwner()
     {
+        GlimpTagLobbyCamera lobbyCamera = FindObjectOfType<GlimpTagLobbyCamera>();
+        if (lobbyCamera != null)
+            lobbyCamera.RemoveNow();
+
         PlaceAtForestSpawn();
 
         if (playerBody != null)
@@ -122,10 +126,10 @@ public sealed class GlimpTagNetworkPlayerRig : NetworkBehaviour
     {
         if (playerBody != null)
         {
-            playerBody.isKinematic = true;
-            playerBody.useGravity = false;
             playerBody.velocity = Vector3.zero;
             playerBody.angularVelocity = Vector3.zero;
+            playerBody.isKinematic = true;
+            playerBody.useGravity = false;
         }
 
         SetEnabled(localCamera, false);

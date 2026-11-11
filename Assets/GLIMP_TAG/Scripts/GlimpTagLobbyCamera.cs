@@ -2,45 +2,42 @@ using Unity.Netcode;
 using UnityEngine;
 
 /// <summary>
-/// Keeps a lightweight XR camera alive while the player is in the lobby.
-/// It removes itself after the local network player prefab has spawned.
+/// Keeps a lightweight XR camera available in the lobby. It is disabled while
+/// the local network player camera is active, then restored when that player
+/// leaves or disconnects.
 /// </summary>
 public sealed class GlimpTagLobbyCamera : MonoBehaviour
 {
-    private bool isRemoving;
+    private Camera lobbyCamera;
+    private AudioListener lobbyAudioListener;
+
+    private void Awake()
+    {
+        lobbyCamera = GetComponent<Camera>();
+        lobbyAudioListener = GetComponent<AudioListener>();
+    }
 
     private void Update()
     {
         NetworkManager manager = NetworkManager.Singleton;
-        if (manager == null || !manager.IsListening)
-            return;
+        bool hasLocalPlayer = manager != null &&
+            manager.IsListening &&
+            manager.SpawnManager != null &&
+            manager.SpawnManager.GetLocalPlayerObject() != null;
 
-        if (manager.SpawnManager == null ||
-            manager.SpawnManager.GetLocalPlayerObject() == null)
-            return;
-
-        RemoveNow();
+        SetLobbyCameraActive(!hasLocalPlayer);
     }
 
-    public void RemoveNow()
+    public void SetLobbyCameraActive(bool active)
     {
-        if (isRemoving)
-            return;
+        if (lobbyCamera == null)
+            lobbyCamera = GetComponent<Camera>();
+        if (lobbyAudioListener == null)
+            lobbyAudioListener = GetComponent<AudioListener>();
 
-        isRemoving = true;
-
-        Camera lobbyCamera = GetComponent<Camera>();
-        if (lobbyCamera != null)
-            lobbyCamera.enabled = false;
-
-        AudioListener listener = GetComponent<AudioListener>();
-        if (listener != null)
-            listener.enabled = false;
-
-        GameObject cameraRoot = transform.parent != null
-            ? transform.parent.gameObject
-            : gameObject;
-
-        Destroy(cameraRoot);
+        if (lobbyCamera != null && lobbyCamera.enabled != active)
+            lobbyCamera.enabled = active;
+        if (lobbyAudioListener != null && lobbyAudioListener.enabled != active)
+            lobbyAudioListener.enabled = active;
     }
 }

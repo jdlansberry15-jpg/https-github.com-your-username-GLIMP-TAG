@@ -17,6 +17,7 @@ GlimpTagNetworkPrefabBuilder creates Assets/Resources/GLIMP_TAG/NetworkPlayer.pr
 - Local hand trigger colliders with GlimpTagNetworkTagger.
 - Remote-only body/head/hand visuals and hand colliders.
 - A NetworkManager and UnityTransport in the main scene.
+- A temporary XR lobby camera that is removed when the local network player spawns.
 - The existing forest spawn points are used to place each owner's player object.
 
 ## LAN test

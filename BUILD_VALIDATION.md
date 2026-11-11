@@ -8,7 +8,7 @@ The Editor script Assets/Editor/GlimpTagBuildValidation.cs runs before Android b
 - The generated NetworkPlayer prefab exists.
 - The prefab contains its NetworkObject, Rigidbody, capsule, XR rig scripts, owner NetworkTransform, avatar pose sync, local hand triggers, remote visuals, and required serialized references.
 - The main scene contains the forest bootstrap, NetworkManager, UnityTransport, lobby UI, infection HUD, and temporary XR lobby camera.
-- NetworkManager PlayerPrefab references the generated NetworkPlayer prefab.
+- NetworkManager uses the scene UnityTransport and references the generated NetworkPlayer prefab.
 
 ## Checks that produce warnings
 - Android OpenXR loader assignment.

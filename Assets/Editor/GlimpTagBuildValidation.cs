@@ -92,7 +92,7 @@ public sealed class GlimpTagBuildValidation : IPreprocessBuildWithReport
             errors.Add("Generated GLIMP TAG scene is missing: " + ScenePath);
         }
 
-        ValidateOpenXR(warnings);
+        ValidateOpenXR(errors, warnings);
 
         if (warnings.Count > 0)
         {
@@ -243,13 +243,13 @@ public sealed class GlimpTagBuildValidation : IPreprocessBuildWithReport
         }
     }
 
-    private static void ValidateOpenXR(List<string> warnings)
+    private static void ValidateOpenXR(List<string> errors, List<string> warnings)
     {
         XRGeneralSettingsPerBuildTarget perTarget;
         if (!EditorBuildSettings.TryGetConfigObject(XRGeneralSettings.k_SettingsKey, out perTarget) ||
             perTarget == null || !perTarget.HasManagerSettingsForBuildTarget(BuildTargetGroup.Android))
         {
-            warnings.Add("Android XR Plug-in Management settings were not found. Check OpenXR setup in the cloud build log.");
+            errors.Add("Android XR Plug-in Management settings were not found. OpenXR cannot be initialized for Quest.");
             return;
         }
 
@@ -268,12 +268,12 @@ public sealed class GlimpTagBuildValidation : IPreprocessBuildWithReport
         }
 
         if (!hasOpenXRLoader)
-            warnings.Add("OpenXR loader is not active for Android. The APK may launch without XR; check XR Plug-in Management.");
+            errors.Add("OpenXR loader is not assigned for Android. The Quest APK would not start in XR.");
 
         OpenXRSettings settings = OpenXRSettings.GetSettingsForBuildTargetGroup(BuildTargetGroup.Android);
         if (settings == null)
         {
-            warnings.Add("OpenXR Android settings asset was not found.");
+            errors.Add("OpenXR Android settings asset was not found.");
             return;
         }
 

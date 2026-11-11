@@ -4,26 +4,29 @@ GLIMP TAG is an original arm-swing VR tag-game prototype for Meta Quest 2, Quest
 
 ## Current vertical-slice scaffold
 
-- A dedicated Quest camera pose driver using Unity XR input
-- XR Hands palm-pose input with Touch controller fallback
-- Hand-contact locomotion using collision correction and a speed cap
-- An automatically generated original forest arena
-- Central treehouse, circular raised bridge, climbable trees and branches
-- Stump gazebo hangout, cave tunnel, rock perimeter, and spawn points
-- A headset-friendly start overlay
+- Unity XR center-eye camera tracking
+- XR Hands palm tracking with Quest Touch controller fallback
+- Hand-contact locomotion with correction and speed limits
+- An original generated forest arena with treehouse, circular bridge, climbing trees, gazebo, cave, rocks, and six spawn points
+- Editor-generated network player prefab with local owner XR rig and remote avatar visuals
+- Head and hand pose synchronization at a default 20 Hz
+- Host/join local Wi-Fi lobby using Unity Transport
+- Server-host infection rounds, random first infected, tag requests, timer, win states, and automatic round restart
+- Temporary round HUD and lobby camera handoff
 - Android ARM64 / IL2CPP / APK build settings
-- Editor automation that creates the initial scene and configures OpenXR when the project opens
 
 ## Chromebook-first workflow
 
-The project is configured for Unity 6.3 LTS and Unity Build Automation. The intended workflow is to connect this public GitHub repository to Unity Build Automation in a browser, create an Android build target, and download the APK. See [CLOUD_BUILD.md](CLOUD_BUILD.md).
+The project is pinned to Unity 6.3 LTS and prepared for Unity Build Automation. The intended workflow is to connect this public GitHub repository to Unity Build Automation in a browser, build Android in the cloud, and download the APK. See CLOUD_BUILD.md.
 
-After a cloud build produces an APK, a Chromebook can use the SideQuest web installer with Chrome and a data-capable USB-C cable. See [QUEST_INSTALL.md](QUEST_INSTALL.md).
+After a cloud build produces an APK, a Chromebook can use WebADB in Chrome with a data-capable USB-C cable to install it. See QUEST_INSTALL.md.
 
 ## Important status
 
-This is a generated source scaffold and early single-player forest movement test, not a finished game. The editor automation has not been executed in a real Unity Editor in this environment. The project has not been compiled, the XR rig has not been validated on a headset, and no APK has been produced.
+This is still a source scaffold, not a finished or verified game. The Editor automation generates the scene, network player prefab, NetworkManager, lobby camera, and avatar materials when Unity opens the project. Those generated prefab and scene assets are not committed as binary/YAML files.
 
-The networking scripts remain prototype code. There is no working online matchmaking, public room system, voice chat, or verified multiplayer session yet. The local tag scripts are not yet wired into the new runtime scene.
+The scripts have not been compiled in a real Unity Editor. No cloud build has been started, no APK has been produced, and nothing has been installed or tested on Quest 2, Quest 3, or Quest 3S.
+
+The lobby currently supports direct same-Wi-Fi host/join only. Internet Relay, room codes, matchmaking, friends, voice chat, moderation, and server-side movement anti-cheat are not implemented. The owner-authoritative movement and simple tag-distance validation are prototypes that need multiplayer testing.
 
 The forest geometry is original and does not reproduce another game's proprietary map, art, or branding.

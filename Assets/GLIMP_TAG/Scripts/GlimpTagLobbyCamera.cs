@@ -17,6 +17,19 @@ public sealed class GlimpTagLobbyCamera : MonoBehaviour
             manager.SpawnManager.GetLocalPlayerObject() == null)
             return;
 
+        RemoveNow();
+    }
+
+    public void RemoveNow()
+    {
+        Camera lobbyCamera = GetComponent<Camera>();
+        if (lobbyCamera != null)
+            lobbyCamera.enabled = false;
+
+        AudioListener listener = GetComponent<AudioListener>();
+        if (listener != null)
+            listener.enabled = false;
+
         GameObject cameraRoot = transform.parent != null
             ? transform.parent.gameObject
             : gameObject;

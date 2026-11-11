@@ -12,8 +12,8 @@ using UnityEngine.XR.OpenXR;
 using UnityEngine.XR.OpenXR.Features;
 
 /// <summary>
-/// Automatically prepares the GLIMP TAG scene list, Android player settings,
-/// and OpenXR loader/features when the Unity project opens or a build begins.
+/// Automatically prepares the GLIMP TAG scene list, network player prefab,
+/// Android player settings, and OpenXR loader/features for cloud builds.
 /// </summary>
 [InitializeOnLoad]
 public sealed class GlimpTagProjectBuilder : IPreprocessBuildWithReport
@@ -54,6 +54,7 @@ public sealed class GlimpTagProjectBuilder : IPreprocessBuildWithReport
         {
             EnsureFolder("Assets/Scenes");
             EnsureScene();
+            GlimpTagNetworkPrefabBuilder.EnsureNetworkPlayerPrefabAndScene(ScenePath);
             ConfigureAndroidPlayer();
             ConfigureOpenXR();
             AssetDatabase.SaveAssets();
@@ -172,6 +173,7 @@ public sealed class GlimpTagProjectBuilder : IPreprocessBuildWithReport
             Debug.LogWarning("GLIMP TAG: Could not create Android XR settings. Check XR Plug-in Management package resolution.");
             return;
         }
+
         bool assigned = XRPackageMetadataStore.AssignLoader(
             manager, "UnityEngine.XR.OpenXR.OpenXRLoader", group);
 

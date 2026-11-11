@@ -1,50 +1,90 @@
 using Unity.Netcode;
+using Unity.Netcode.Transports.UTP;
 using UnityEngine;
 
 /// <summary>
-/// Minimal in-game host/client menu for local network testing.
-/// This is not an internet room-code or matchmaking service.
+/// Local Wi-Fi host/join menu for early multiplayer testing.
+/// Internet matchmaking and Relay room codes are not included yet.
 /// </summary>
-public class GlimpTagLobbyUI : MonoBehaviour
+public sealed class GlimpTagLobbyUI : MonoBehaviour
 {
+    private const ushort Port = 7777;
+    private string hostAddress = "127.0.0.1";
     private string status = "Not connected";
 
     private void OnGUI()
     {
-        const int width = 300;
-        const int height = 190;
+        const int width = 360;
+        const int height = 270;
         Rect panel = new Rect(20, 20, width, height);
 
         GUILayout.BeginArea(panel, GUI.skin.box);
         GUILayout.Label("GLIMP TAG");
-        GUILayout.Label("Forest Lobby");
-        GUILayout.Space(8);
+        GUILayout.Label("FOREST LOBBY");
+        GUILayout.Space(6);
 
         NetworkManager manager = NetworkManager.Singleton;
-        bool connected = manager != null && manager.IsClient;
+        bool connected = manager != null && manager.IsListening;
 
         if (!connected)
         {
-            if (GUILayout.Button("HOST GAME", GUILayout.Height(38)))
+            GUILayout.Label("Host IP address (joiners only)");
+            hostAddress = GUILayout.TextField(hostAddress, 32);
+            GUILayout.Label("Same Wi-Fi network required for this test.");
+            GUILayout.Space(6);
+
+            if (GUILayout.Button("HOST LOCAL GAME", GUILayout.Height(42)))
             {
-                if (manager != null && manager.StartHost())
-                    status = "Hosting local session";
+                UnityTransport transport = manager != null
+                    ? manager.GetComponent<UnityTransport>()
+                    : null;
+
+                if (manager == null || transport == null)
+                {
+                    status = "Network setup is missing.";
+                }
                 else
-                    status = "Host could not start";
+                {
+                    transport.SetConnectionData("127.0.0.1", Port, "0.0.0.0");
+                    status = manager.StartHost()
+                        ? "Host started. Share this headset's Wi-Fi IP."
+                        : "Host could not start.";
+                }
             }
 
-            if (GUILayout.Button("JOIN LOCAL GAME", GUILayout.Height(38)))
+            if (GUILayout.Button("JOIN LOCAL GAME", GUILayout.Height(42)))
             {
-                if (manager != null && manager.StartClient())
-                    status = "Connecting to configured server";
+                UnityTransport transport = manager != null
+                    ? manager.GetComponent<UnityTransport>()
+                    : null;
+
+                if (manager == null || transport == null)
+                {
+                    status = "Network setup is missing.";
+                }
+                else if (string.IsNullOrWhiteSpace(hostAddress))
+                {
+                    status = "Enter the host headset's Wi-Fi IP.";
+                }
                 else
-                    status = "Client could not start";
+                {
+                    transport.SetConnectionData(hostAddress.Trim(), Port);
+                    status = manager.StartClient()
+                        ? "Connecting to host..."
+                        : "Client could not start.";
+                }
             }
+
+            GUILayout.Label("Find the host IP in Quest Settings > Wi-Fi > connected network.");
         }
         else
         {
             GUILayout.Label("Connected players: " + manager.ConnectedClientsIds.Count);
-            if (GUILayout.Button("LEAVE GAME", GUILayout.Height(38)))
+            GUILayout.Label(manager.IsHost
+                ? "Hosting on local Wi-Fi. Relay is not configured."
+                : "Connected to a local Wi-Fi host.");
+
+            if (GUILayout.Button("LEAVE GAME", GUILayout.Height(42)))
             {
                 manager.Shutdown();
                 status = "Disconnected";

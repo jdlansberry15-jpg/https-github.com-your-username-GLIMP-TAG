@@ -51,6 +51,10 @@ public static class GlimpTagNetworkPrefabBuilder
         Material leftMaterial = EnsureMaterial("PlayerLeftHand.mat", new Color(0.20f, 0.88f, 1f));
         Material rightMaterial = EnsureMaterial("PlayerRightHand.mat", new Color(1f, 0.48f, 0.18f));
 
+        if (bodyMaterial == null || headMaterial == null ||
+            leftMaterial == null || rightMaterial == null)
+            return null;
+
         GameObject root = new GameObject("GLIMP TAG Network Player");
         root.transform.position = Vector3.zero;
 
@@ -83,6 +87,9 @@ public static class GlimpTagNetworkPrefabBuilder
         camera.farClipPlane = 100f;
         camera.fieldOfView = 90f;
         AudioListener audioListener = cameraObject.AddComponent<AudioListener>();
+        // The scene lobby camera remains active until this local player spawns.
+        camera.enabled = false;
+        audioListener.enabled = false;
 
         Transform leftSource = CreateHandSource(trackingSpace, "Left Hand Tracking Proxy",
             new Vector3(-0.25f, 1.1f, 0.35f), leftMaterial,

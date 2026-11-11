@@ -14,6 +14,7 @@ GLIMP TAG is an original arm-swing VR tag-game prototype for Meta Quest 2, Quest
 - Server-host infection rounds, random first infected, tag requests, timer, win states, and automatic round restart
 - Temporary round HUD and lobby camera handoff
 - Android ARM64 / IL2CPP / APK build settings
+- Automated pre-build checks for the generated player prefab, scene wiring, network manager, and XR setup
 
 ## Chromebook-first workflow
 
@@ -25,7 +26,7 @@ After a cloud build produces an APK, a Chromebook can use WebADB in Chrome with 
 
 This is still a source scaffold, not a finished or verified game. The Editor automation generates the scene, network player prefab, NetworkManager, lobby camera, and avatar materials when Unity opens the project. Those generated prefab and scene assets are not committed as binary/YAML files.
 
-The scripts have not been compiled in a real Unity Editor. No cloud build has been started, no APK has been produced, and nothing has been installed or tested on Quest 2, Quest 3, or Quest 3S.
+The scripts and pre-build validator have not been run in a real Unity Editor. No cloud build has been started, no APK has been produced, and nothing has been installed or tested on Quest 2, Quest 3, or Quest 3S.
 
 The lobby currently supports direct same-Wi-Fi host/join only. Internet Relay, room codes, matchmaking, friends, voice chat, moderation, and server-side movement anti-cheat are not implemented. The owner-authoritative movement and simple tag-distance validation are prototypes that need multiplayer testing.
 

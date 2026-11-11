@@ -210,9 +210,14 @@ public sealed class GlimpTagBuildValidation : IPreprocessBuildWithReport
         Require(manager != null, "NetworkManager component is missing from the network manager object.", errors);
         Require(transport != null, "UnityTransport component is missing from the network manager object.", errors);
 
-        if (manager != null && playerPrefab != null)
-            Require(manager.NetworkConfig.PlayerPrefab == playerPrefab,
-                "NetworkManager PlayerPrefab does not reference the generated NetworkPlayer prefab.", errors);
+        if (manager != null)
+        {
+            Require(manager.NetworkConfig != null,
+                "NetworkManager has no NetworkConfig.", errors);
+            if (manager.NetworkConfig != null && playerPrefab != null)
+                Require(manager.NetworkConfig.PlayerPrefab == playerPrefab,
+                    "NetworkManager PlayerPrefab does not reference the generated NetworkPlayer prefab.", errors);
+        }
 
         Require(managerObject.GetComponent<GlimpTagLobbyUI>() != null,
             "Lobby UI is missing from the network manager object.", errors);
@@ -243,7 +248,7 @@ public sealed class GlimpTagBuildValidation : IPreprocessBuildWithReport
 
         XRManagerSettings managerSettings = perTarget.ManagerSettingsForBuildTarget(BuildTargetGroup.Android);
         bool hasOpenXRLoader = false;
-        if (managerSettings != null)
+        if (managerSettings != null && managerSettings.activeLoaders != null)
         {
             foreach (XRLoader loader in managerSettings.activeLoaders)
             {

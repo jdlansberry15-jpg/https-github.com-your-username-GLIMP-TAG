@@ -30,7 +30,7 @@ Unity Netcode for GameObjects 2.13.3 is listed as a pre-release package for Unit
 9. In Android settings, make sure Build app bundles (.aab) instead of an APK is OFF. The goal is a sideloadable APK.
 10. Save the configuration and start a build.
 
-The Editor automation attempts to generate the forest scene, network player prefab, NetworkManager, UnityTransport, XR lobby camera, lobby UI, and infection HUD. It also configures Android ARM64 / IL2CPP / APK settings and attempts to assign OpenXR for Android with Quest interaction features.
+The Editor automation attempts to generate the forest scene, network player prefab, NetworkManager, UnityTransport, XR lobby camera, lobby UI, and infection HUD. It also configures Android ARM64 / IL2CPP / APK settings and attempts to assign OpenXR for Android with Quest interaction features. A second pre-build callback checks the generated prefab references, scene wiring, network manager, Android output settings, and OpenXR loader; see BUILD_VALIDATION.md.
 
 ## Cost and signing
 
@@ -54,6 +54,6 @@ WebADB advertises one-click APK installation in Chrome through WebUSB, without i
 
 - No cloud build has been started or completed.
 - This environment cannot sign into the user's Unity Dashboard, create the user's Build Automation configuration, or accept legal/account prompts.
-- The editor automation has not been run in an actual Unity Editor yet. The generated prefab and scene therefore remain unverified.
+- The editor automation and pre-build validator have not been run in an actual Unity Editor yet. The generated prefab and scene therefore remain unverified.
 - If Unity Build Automation reports a compile or XR configuration error, use the build log to identify the first failing script or package before retrying.
 - A successful APK build would still need to be installed and tested on the actual Quest headset.

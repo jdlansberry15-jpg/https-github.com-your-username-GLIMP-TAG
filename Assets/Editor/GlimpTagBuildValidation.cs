@@ -215,9 +215,15 @@ public sealed class GlimpTagBuildValidation : IPreprocessBuildWithReport
         {
             Require(manager.NetworkConfig != null,
                 "NetworkManager has no NetworkConfig.", errors);
-            if (manager.NetworkConfig != null && playerPrefab != null)
-                Require(manager.NetworkConfig.PlayerPrefab == playerPrefab,
-                    "NetworkManager PlayerPrefab does not reference the generated NetworkPlayer prefab.", errors);
+            if (manager.NetworkConfig != null)
+            {
+                if (transport != null)
+                    Require(manager.NetworkConfig.NetworkTransport == transport,
+                        "NetworkManager NetworkTransport is not assigned to the scene UnityTransport.", errors);
+                if (playerPrefab != null)
+                    Require(manager.NetworkConfig.PlayerPrefab == playerPrefab,
+                        "NetworkManager PlayerPrefab does not reference the generated NetworkPlayer prefab.", errors);
+            }
         }
 
         Require(managerObject.GetComponent<GlimpTagLobbyUI>() != null,

@@ -45,12 +45,12 @@ public struct GlimpTagAvatarPoseSnapshot : INetworkSerializable, IEquatable<Glim
     public bool Equals(GlimpTagAvatarPoseSnapshot other)
     {
         return IsValid == other.IsValid &&
-            HeadPosition == other.HeadPosition &&
-            HeadRotation == other.HeadRotation &&
-            LeftHandPosition == other.LeftHandPosition &&
-            LeftHandRotation == other.LeftHandRotation &&
-            RightHandPosition == other.RightHandPosition &&
-            RightHandRotation == other.RightHandRotation;
+            HeadPosition.Equals(other.HeadPosition) &&
+            HeadRotation.Equals(other.HeadRotation) &&
+            LeftHandPosition.Equals(other.LeftHandPosition) &&
+            LeftHandRotation.Equals(other.LeftHandRotation) &&
+            RightHandPosition.Equals(other.RightHandPosition) &&
+            RightHandRotation.Equals(other.RightHandRotation);
     }
 
     public override bool Equals(object obj)

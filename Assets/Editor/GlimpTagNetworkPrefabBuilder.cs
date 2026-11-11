@@ -24,6 +24,12 @@ public static class GlimpTagNetworkPrefabBuilder
         EnsureFolder(MaterialFolder);
 
         GameObject prefab = BuildNetworkPlayerPrefab();
+        if (prefab == null)
+        {
+            Debug.LogError("GLIMP TAG: Network player prefab could not be generated.");
+            return;
+        }
+
         ConfigureNetworkScene(scenePath, prefab);
 
         AssetDatabase.SaveAssets();
@@ -218,6 +224,12 @@ public static class GlimpTagNetworkPrefabBuilder
         if (shader == null)
             shader = Shader.Find("Universal Render Pipeline/Lit");
 
+        if (shader == null)
+        {
+            Debug.LogError("GLIMP TAG: No supported shader was found for generated avatar materials.");
+            return null;
+        }
+
         material = new Material(shader);
         material.color = color;
         material.enableInstancing = true;
@@ -265,8 +277,47 @@ public static class GlimpTagNetworkPrefabBuilder
         if (managerObject.GetComponent<GlimpTagNetworkRoundHud>() == null)
             managerObject.AddComponent<GlimpTagNetworkRoundHud>();
 
+        EnsureLobbyCamera();
+
         EditorSceneManager.MarkSceneDirty(scene);
         EditorSceneManager.SaveScene(scene);
+    }
+
+
+    private static void EnsureLobbyCamera()
+    {
+        GameObject trackingObject = GameObject.Find("GLIMP TAG Lobby Tracking Space");
+        if (trackingObject == null)
+            trackingObject = new GameObject("GLIMP TAG Lobby Tracking Space");
+
+        Transform trackingSpace = trackingObject.transform;
+        GameObject cameraObject = GameObject.Find("GLIMP TAG Lobby Camera");
+        if (cameraObject == null)
+            cameraObject = new GameObject("GLIMP TAG Lobby Camera");
+
+        cameraObject.tag = "MainCamera";
+        cameraObject.transform.SetParent(trackingSpace, false);
+        cameraObject.transform.localPosition = new Vector3(0f, 1.6f, 0f);
+        cameraObject.transform.localRotation = Quaternion.identity;
+
+        Camera camera = cameraObject.GetComponent<Camera>();
+        if (camera == null)
+            camera = cameraObject.AddComponent<Camera>();
+        camera.nearClipPlane = 0.05f;
+        camera.farClipPlane = 100f;
+        camera.fieldOfView = 90f;
+
+        if (cameraObject.GetComponent<AudioListener>() == null)
+            cameraObject.AddComponent<AudioListener>();
+
+        GlimpTagXRCameraDriver cameraDriver =
+            cameraObject.GetComponent<GlimpTagXRCameraDriver>();
+        if (cameraDriver == null)
+            cameraDriver = cameraObject.AddComponent<GlimpTagXRCameraDriver>();
+        cameraDriver.Configure(trackingSpace, cameraObject.transform);
+
+        if (cameraObject.GetComponent<GlimpTagLobbyCamera>() == null)
+            cameraObject.AddComponent<GlimpTagLobbyCamera>();
     }
 
     private static void EnsureFolder(string path)

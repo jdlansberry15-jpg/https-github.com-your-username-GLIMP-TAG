@@ -236,6 +236,7 @@ public sealed class GlimpTagBuildValidation : IPreprocessBuildWithReport
         if (lobbyCameraObject != null)
         {
             Require(lobbyCameraObject.GetComponent<Camera>() != null, "Lobby camera component is missing.", errors);
+            Require(lobbyCameraObject.GetComponent<AudioListener>() != null, "Lobby camera AudioListener is missing.", errors);
             Require(lobbyCameraObject.GetComponent<GlimpTagXRCameraDriver>() != null,
                 "Lobby camera XR driver is missing.", errors);
             Require(lobbyCameraObject.GetComponent<GlimpTagLobbyCamera>() != null,

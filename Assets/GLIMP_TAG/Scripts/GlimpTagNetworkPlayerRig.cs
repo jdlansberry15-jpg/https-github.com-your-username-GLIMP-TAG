@@ -94,7 +94,7 @@ public sealed class GlimpTagNetworkPlayerRig : NetworkBehaviour
     {
         GlimpTagLobbyCamera lobbyCamera = FindObjectOfType<GlimpTagLobbyCamera>();
         if (lobbyCamera != null)
-            lobbyCamera.RemoveNow();
+            lobbyCamera.SetLobbyCameraActive(false);
 
         PlaceAtForestSpawn();
 

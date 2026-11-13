@@ -57,3 +57,8 @@ WebADB advertises one-click APK installation in Chrome through WebUSB, without i
 - The editor automation and pre-build validator have not been run in an actual Unity Editor yet. The generated prefab and scene therefore remain unverified.
 - If Unity Build Automation reports a compile or XR configuration error, use the build log to identify the first failing script or package before retrying.
 - A successful APK build would still need to be installed and tested on the actual Quest headset.
+
+
+## Relay room-code dependency
+
+The project now pins `com.unity.services.multiplayer` **2.4.1**, released for Unity 6000.3. The generated NetworkManager receives a Relay session component and the lobby UI uses Relay join codes rather than same-Wi-Fi IP addresses. Before a real connection test, the Unity Cloud project must be linked and Authentication plus Relay enabled in Unity Dashboard. See RELAY_SETUP.md. NGO 2.13.3 remains a pre-release package for Unity 6000.3.

@@ -7,8 +7,9 @@ The Editor script Assets/Editor/GlimpTagBuildValidation.cs runs before Android b
 - GLIMP TAG main scene is enabled in Build Settings.
 - The generated NetworkPlayer prefab exists.
 - The prefab contains its NetworkObject, Rigidbody, capsule, XR rig scripts, owner NetworkTransform, avatar pose sync, local hand triggers, remote visuals, and required serialized references.
-- The main scene contains the forest bootstrap, NetworkManager, UnityTransport, lobby UI, infection HUD, and temporary XR lobby camera.
+- The main scene contains the forest bootstrap, NetworkManager, UnityTransport, Relay room session, lobby UI, infection HUD, and temporary XR lobby camera.
 - NetworkManager uses the scene UnityTransport and references the generated NetworkPlayer prefab.
+- The Relay room-code session component is present on the NetworkManager object.
 - Android XR Plug-in Management settings and an OpenXR loader are assigned.
 
 ## Checks that produce warnings

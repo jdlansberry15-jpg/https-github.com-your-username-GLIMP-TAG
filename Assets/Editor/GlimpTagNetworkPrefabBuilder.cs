@@ -278,6 +278,9 @@ public static class GlimpTagNetworkPrefabBuilder
         manager.NetworkConfig.TickRate = 30;
         manager.NetworkConfig.EnableSceneManagement = false;
 
+        if (managerObject.GetComponent<GlimpTagRelaySession>() == null)
+            managerObject.AddComponent<GlimpTagRelaySession>();
+
         if (managerObject.GetComponent<GlimpTagLobbyUI>() == null)
             managerObject.AddComponent<GlimpTagLobbyUI>();
 

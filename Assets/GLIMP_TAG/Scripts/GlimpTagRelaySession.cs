@@ -22,6 +22,7 @@ public sealed class GlimpTagRelaySession : MonoBehaviour
     private string relayConnectionType = "dtls";
 
     private NetworkManager networkManager;
+    private NetworkManager subscribedManager;
     private UnityTransport unityTransport;
     private bool operationInProgress;
     private string lastJoinCode = string.Empty;
@@ -34,6 +35,11 @@ public sealed class GlimpTagRelaySession : MonoBehaviour
     private void Awake()
     {
         ResolveNetworkComponents();
+    }
+
+    private void OnDisable()
+    {
+        UnsubscribeFromNetworkEvents();
     }
 
     public async Task<bool> HostRoomAsync()
@@ -173,6 +179,47 @@ public sealed class GlimpTagRelaySession : MonoBehaviour
 
         if (networkManager.IsListening)
             throw new InvalidOperationException("You are already in a room. Leave it before hosting or joining another.");
+
+        SubscribeToNetworkEvents();
+    }
+
+    private void SubscribeToNetworkEvents()
+    {
+        if (subscribedManager == networkManager)
+            return;
+
+        UnsubscribeFromNetworkEvents();
+        if (networkManager == null)
+            return;
+
+        networkManager.OnClientConnectedCallback += HandleClientConnected;
+        networkManager.OnClientDisconnectCallback += HandleClientDisconnected;
+        subscribedManager = networkManager;
+    }
+
+    private void UnsubscribeFromNetworkEvents()
+    {
+        if (subscribedManager == null)
+            return;
+
+        subscribedManager.OnClientConnectedCallback -= HandleClientConnected;
+        subscribedManager.OnClientDisconnectCallback -= HandleClientDisconnected;
+        subscribedManager = null;
+    }
+
+    private void HandleClientConnected(ulong clientId)
+    {
+        if (networkManager != null && clientId == networkManager.LocalClientId)
+            SetStatus("Connected to the GLIMP TAG room.");
+    }
+
+    private void HandleClientDisconnected(ulong clientId)
+    {
+        if (networkManager != null && clientId == networkManager.LocalClientId)
+        {
+            lastJoinCode = string.Empty;
+            SetStatus("Disconnected from the room.");
+        }
     }
 
     private void SetStatus(string message)

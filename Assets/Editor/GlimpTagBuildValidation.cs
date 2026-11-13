@@ -226,6 +226,9 @@ public sealed class GlimpTagBuildValidation : IPreprocessBuildWithReport
             }
         }
 
+        Require(managerObject.GetComponent<GlimpTagRelaySession>() != null,
+            "Relay room-code session is missing from the network manager object.", errors);
+
         Require(managerObject.GetComponent<GlimpTagLobbyUI>() != null,
             "Lobby UI is missing from the network manager object.", errors);
         Require(managerObject.GetComponent<GlimpTagNetworkRoundHud>() != null,

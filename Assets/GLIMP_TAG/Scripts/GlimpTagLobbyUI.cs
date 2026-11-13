@@ -1,98 +1,164 @@
 using Unity.Netcode;
-using Unity.Netcode.Transports.UTP;
 using UnityEngine;
 
 /// <summary>
-/// Local Wi-Fi host/join menu for early multiplayer testing.
-/// Internet matchmaking and Relay room codes are not included yet.
+/// Room-code lobby for the GLIMP TAG Quest prototype.
+/// Uses Unity Relay when GlimpTagRelaySession is present.
 /// </summary>
 public sealed class GlimpTagLobbyUI : MonoBehaviour
 {
-    private const ushort Port = 7777;
-    private string hostAddress = "127.0.0.1";
-    private string status = "Not connected";
+    private GlimpTagRelaySession relaySession;
+    private string joinCodeInput = string.Empty;
+
+    private void Awake()
+    {
+        relaySession = GetComponent<GlimpTagRelaySession>();
+    }
 
     private void OnGUI()
     {
-        const int width = 360;
-        const int height = 270;
-        Rect panel = new Rect(20, 20, width, height);
+        float width = Mathf.Min(500f, Screen.width - 32f);
+        Rect panel = new Rect(16f, 16f, width, 410f);
 
         GUILayout.BeginArea(panel, GUI.skin.box);
-        GUILayout.Label("GLIMP TAG");
-        GUILayout.Label("FOREST LOBBY");
-        GUILayout.Space(6);
+        GUILayout.Space(8f);
+        GUILayout.Label("GLIMP TAG", HeaderStyle());
+        GUILayout.Label("FOREST FRIENDS LOBBY", CenterStyle());
+        GUILayout.Space(10f);
 
         NetworkManager manager = NetworkManager.Singleton;
-        bool connected = manager != null && manager.IsListening;
+        bool listening = manager != null && manager.IsListening;
+        bool connected = listening && (manager.IsHost || manager.IsConnectedClient);
 
-        if (!connected)
-        {
-            GUILayout.Label("Host IP address (joiners only)");
-            hostAddress = GUILayout.TextField(hostAddress, 32);
-            GUILayout.Label("Same Wi-Fi network required for this test.");
-            GUILayout.Space(6);
-
-            if (GUILayout.Button("HOST LOCAL GAME", GUILayout.Height(42)))
-            {
-                UnityTransport transport = manager != null
-                    ? manager.GetComponent<UnityTransport>()
-                    : null;
-
-                if (manager == null || transport == null)
-                {
-                    status = "Network setup is missing.";
-                }
-                else
-                {
-                    transport.SetConnectionData("127.0.0.1", Port, "0.0.0.0");
-                    status = manager.StartHost()
-                        ? "Host started. Share this headset's Wi-Fi IP."
-                        : "Host could not start.";
-                }
-            }
-
-            if (GUILayout.Button("JOIN LOCAL GAME", GUILayout.Height(42)))
-            {
-                UnityTransport transport = manager != null
-                    ? manager.GetComponent<UnityTransport>()
-                    : null;
-
-                if (manager == null || transport == null)
-                {
-                    status = "Network setup is missing.";
-                }
-                else if (string.IsNullOrWhiteSpace(hostAddress))
-                {
-                    status = "Enter the host headset's Wi-Fi IP.";
-                }
-                else
-                {
-                    transport.SetConnectionData(hostAddress.Trim(), Port);
-                    status = manager.StartClient()
-                        ? "Connecting to host..."
-                        : "Client could not start.";
-                }
-            }
-
-            GUILayout.Label("Find the host IP in Quest Settings > Wi-Fi > connected network.");
-        }
+        if (!listening)
+            DrawDisconnectedMenu();
+        else if (connected)
+            DrawConnectedMenu(manager);
         else
-        {
-            GUILayout.Label("Connected players: " + manager.ConnectedClientsIds.Count);
-            GUILayout.Label(manager.IsHost
-                ? "Hosting on local Wi-Fi. Relay is not configured."
-                : "Connected to a local Wi-Fi host.");
+            DrawConnectingMenu(manager);
 
-            if (GUILayout.Button("LEAVE GAME", GUILayout.Height(42)))
-            {
-                manager.Shutdown();
-                status = "Disconnected";
-            }
+        GUILayout.Space(10f);
+        string currentStatus = relaySession != null
+            ? relaySession.Status
+            : "Relay room-code networking is not configured.";
+        GUILayout.Label(currentStatus, WrapStyle());
+        GUILayout.EndArea();
+    }
+
+    private void DrawDisconnectedMenu()
+    {
+        if (relaySession == null)
+        {
+            GUILayout.Label("Room-code networking is not configured. Rebuild the Quest project from the GLIMP TAG menu.", WrapStyle());
+            return;
         }
 
-        GUILayout.Space(6);
-        GUILayout.Label(status);
-        GUILayout.EndArea();
+        GUILayout.Label("CREATE A PRIVATE ROOM", CenterStyle());
+        GUILayout.Label("Host a game and share the room code with your friends.", WrapStyle());
+
+        bool wasEnabled = GUI.enabled;
+        GUI.enabled = wasEnabled && !relaySession.IsBusy;
+
+        if (GUILayout.Button("CREATE ROOM", GUILayout.Height(48f)))
+            StartHostRoom();
+
+        GUILayout.Space(12f);
+        GUILayout.Label("JOIN A FRIEND", CenterStyle());
+        joinCodeInput = GUILayout.TextField(joinCodeInput, 16).Trim().ToUpperInvariant();
+
+        if (GUILayout.Button("JOIN ROOM", GUILayout.Height(48f)))
+            StartJoinRoom();
+
+        GUI.enabled = wasEnabled;
+    }
+
+    private void DrawConnectingMenu(NetworkManager manager)
+    {
+        GUILayout.Label("CONNECTING TO ROOM...", CenterStyle());
+        GUILayout.Label("Keep this screen open while GLIMP TAG connects.", WrapStyle());
+
+        if (GUILayout.Button("CANCEL / LEAVE", GUILayout.Height(44f)))
+        {
+            if (relaySession != null)
+                relaySession.LeaveRoom();
+            else if (manager != null)
+                manager.Shutdown();
+        }
+    }
+
+    private void DrawConnectedMenu(NetworkManager manager)
+    {
+        GUILayout.Label(manager.IsHost ? "YOU ARE THE HOST" : "YOU ARE IN A ROOM", CenterStyle());
+        GUILayout.Label("Players connected: " + manager.ConnectedClientsIds.Count, CenterStyle());
+
+        if (manager.IsHost && relaySession != null && !string.IsNullOrEmpty(relaySession.LastJoinCode))
+        {
+            GUILayout.Space(8f);
+            GUILayout.Label("SHARE THIS ROOM CODE", CenterStyle());
+            GUILayout.TextField(relaySession.LastJoinCode);
+            GUILayout.Label("Your friends enter this code on their Join Room screen.", WrapStyle());
+
+            if (GUILayout.Button("COPY ROOM CODE", GUILayout.Height(40f)))
+                GUIUtility.systemCopyBuffer = relaySession.LastJoinCode;
+        }
+        else if (!manager.IsHost)
+        {
+            GUILayout.Label("Connected to the host. Have fun in the forest!", CenterStyle());
+        }
+
+        GUILayout.Space(12f);
+        if (GUILayout.Button("LEAVE ROOM", GUILayout.Height(44f)))
+        {
+            if (relaySession != null)
+                relaySession.LeaveRoom();
+            else
+                manager.Shutdown();
+        }
+    }
+
+    private async void StartHostRoom()
+    {
+        if (relaySession != null)
+            await relaySession.HostRoomAsync();
+    }
+
+    private async void StartJoinRoom()
+    {
+        if (relaySession != null)
+            await relaySession.JoinRoomAsync(joinCodeInput);
+    }
+
+    private static GUIStyle HeaderStyle()
+    {
+        return new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 30,
+            fontStyle = FontStyle.Bold,
+            alignment = TextAnchor.MiddleCenter,
+            normal = { textColor = Color.white }
+        };
+    }
+
+    private static GUIStyle CenterStyle()
+    {
+        return new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 18,
+            fontStyle = FontStyle.Bold,
+            alignment = TextAnchor.MiddleCenter,
+            wordWrap = true,
+            normal = { textColor = Color.white }
+        };
+    }
+
+    private static GUIStyle WrapStyle()
+    {
+        return new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 15,
+            alignment = TextAnchor.MiddleCenter,
+            wordWrap = true,
+            normal = { textColor = Color.white }
+        };
     }
 }

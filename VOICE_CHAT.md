@@ -47,7 +47,7 @@ Vivox channel names are restricted to a documented character set; the code norma
 - Voice is not joined until a player enters a Relay room.
 - The microphone is only transmitted after Android microphone permission is granted. Players can mute themselves from the lobby.
 - A user who denies microphone permission can still play without voice and can retry after enabling permission in Quest app settings.
-- The optional Bluetooth Connect permission is disabled by default. Enable it in the component only if external Bluetooth audio device support is needed on Android 12 or later.
+- On Android 12 and later, the component also requests Bluetooth Connect permission, following Vivox's Android setup guidance. If that permission is denied, the prototype continues with the built-in Quest audio path; Bluetooth accessories may not work correctly.
 - The channel name is derived from the Relay join code. This prototype does not use Vivox Access Tokens (VATs) or a separate authorization server. Treat the room code as private; add server-issued access tokens before a public release.
 - Per-player mute/block UI, report tools, parental controls, age gating, moderation workflows, push-to-talk, and voice activity indicators are not implemented.
 - Vivox dashboard provisioning and service terms/limits must be reviewed by the project owner.

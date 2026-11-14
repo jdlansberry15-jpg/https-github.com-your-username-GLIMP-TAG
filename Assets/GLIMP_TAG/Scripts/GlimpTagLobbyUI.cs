@@ -8,17 +8,19 @@ using UnityEngine;
 public sealed class GlimpTagLobbyUI : MonoBehaviour
 {
     private GlimpTagRelaySession relaySession;
+    private GlimpTagVoiceChat voiceChat;
     private string joinCodeInput = string.Empty;
 
     private void Awake()
     {
         relaySession = GetComponent<GlimpTagRelaySession>();
+        voiceChat = GetComponent<GlimpTagVoiceChat>();
     }
 
     private void OnGUI()
     {
         float width = Mathf.Min(500f, Screen.width - 32f);
-        Rect panel = new Rect(16f, 16f, width, 410f);
+        Rect panel = new Rect(16f, 16f, width, 510f);
 
         GUILayout.BeginArea(panel, GUI.skin.box);
         GUILayout.Space(8f);
@@ -36,6 +38,9 @@ public sealed class GlimpTagLobbyUI : MonoBehaviour
             DrawConnectedMenu(manager);
         else
             DrawConnectingMenu(manager);
+
+        if (voiceChat != null && voiceChat.ShouldShowControls)
+            voiceChat.DrawLobbyControls();
 
         GUILayout.Space(10f);
         string currentStatus = relaySession != null

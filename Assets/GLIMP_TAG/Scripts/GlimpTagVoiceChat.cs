@@ -25,7 +25,7 @@ public sealed class GlimpTagVoiceChat : MonoBehaviour
 
     [Header("Android audio permissions")]
     [Tooltip("Only enable this if GLIMP TAG needs Bluetooth audio devices on Android 12 or later.")]
-    [SerializeField] private bool requestBluetoothConnectPermission;
+    [SerializeField] private bool requestBluetoothConnectPermission = true;
 
     private GlimpTagRelaySession relaySession;
     private bool vivoxInitialized;
@@ -246,7 +246,7 @@ public sealed class GlimpTagVoiceChat : MonoBehaviour
         if (!microphoneAllowed)
             return false;
 
-        if (requestBluetoothConnectPermission)
+        if (requestBluetoothConnectPermission && IsAndroid12OrLater())
         {
             const string bluetoothPermission = "android.permission.BLUETOOTH_CONNECT";
             if (!Permission.HasUserAuthorizedPermission(bluetoothPermission))
@@ -264,6 +264,16 @@ public sealed class GlimpTagVoiceChat : MonoBehaviour
         return true;
 #else
         return true;
+#endif
+    }
+
+    private static bool IsAndroid12OrLater()
+    {
+#if UNITY_ANDROID && !UNITY_EDITOR
+        using (AndroidJavaClass version = new AndroidJavaClass("android.os.Build$VERSION"))
+            return version.GetStatic<int>("SDK_INT") >= 31;
+#else
+        return false;
 #endif
     }
 

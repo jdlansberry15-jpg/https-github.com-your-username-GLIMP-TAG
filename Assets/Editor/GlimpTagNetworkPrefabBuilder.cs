@@ -281,6 +281,9 @@ public static class GlimpTagNetworkPrefabBuilder
         if (managerObject.GetComponent<GlimpTagRelaySession>() == null)
             managerObject.AddComponent<GlimpTagRelaySession>();
 
+        if (managerObject.GetComponent<GlimpTagVoiceChat>() == null)
+            managerObject.AddComponent<GlimpTagVoiceChat>();
+
         if (managerObject.GetComponent<GlimpTagLobbyUI>() == null)
             managerObject.AddComponent<GlimpTagLobbyUI>();
 

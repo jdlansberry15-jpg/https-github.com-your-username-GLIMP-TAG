@@ -44,3 +44,10 @@ Relay join codes are shared out-of-band. There is no public room browser, friend
 - Clipboard access can vary by Quest OS/runtime. The code remains visibly displayed so it can be read aloud or shared separately.
 - The OnGUI lobby is a temporary debug UI, not a polished VR wrist menu.
 - This source has not been compiled in Unity, connected to a real Unity Cloud project, or tested on a Quest. A StartHost/StartClient return value does not prove that a remote player connected.
+
+
+## Proximity voice chat
+
+The project now includes Unity Vivox 16.12.1 for Unity 6000.3. See [VOICE_CHAT.md](VOICE_CHAT.md) for Unity Dashboard provisioning, microphone permission, positional audio, mute controls, and release limitations.
+
+Voice joins the Vivox positional channel derived from the Relay room code after the local player connects. The lobby displays a local microphone mute/unmute control. Vivox must be enabled and provisioned in the same Unity Cloud project before voice can work.

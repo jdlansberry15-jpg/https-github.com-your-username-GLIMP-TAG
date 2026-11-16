@@ -62,13 +62,14 @@ public sealed class GlimpTagRoomRosterOverlay : MonoBehaviour
             instance = null;
 
         SceneManager.sceneLoaded -= OnSceneLoaded;
-        if (!subscribedToVivox)
-            return;
 
         foreach (VivoxParticipant participant in participants)
             UnsubscribeParticipant(participant);
         participants.Clear();
         speakingNames.Clear();
+
+        if (!subscribedToVivox)
+            return;
 
         try
         {

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -30,6 +31,12 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
 
     public NetworkVariable<Color> PlayerColor = new NetworkVariable<Color>(
         Color.white, NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server);
+
+    // Small fixed string keeps player names persistent and allocation-free on the network.
+    public NetworkVariable<FixedString64Bytes> DisplayName = new NetworkVariable<FixedString64Bytes>(
+        new FixedString64Bytes("Glimp Player"),
+        NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server);
 
     // These variables are authoritative on the host's player object.
@@ -67,6 +74,18 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
         if (IsServer)
             PlayerColor.Value = Random.ColorHSV(0f, 1f, 0.65f, 1f, 0.75f, 1f);
 
+        if (IsOwner)
+        {
+            string localName = SanitizeDisplayName(
+                PlayerPrefs.GetString("GlimpTag_PlayerName", "Glimp Player"));
+            FixedString64Bytes fixedName = new FixedString64Bytes(localName);
+
+            if (IsServer)
+                DisplayName.Value = fixedName;
+            else
+                SubmitDisplayNameRpc(fixedName);
+        }
+
         ApplyAppearance();
     }
 
@@ -83,6 +102,39 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
             return;
 
         TickRound(Time.deltaTime);
+    }
+
+    /// <summary>
+    /// The owner proposes a display name; the server sanitizes and publishes it.
+    /// </summary>
+    [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
+    private void SubmitDisplayNameRpc(FixedString64Bytes requestedName)
+    {
+        if (!IsServer)
+            return;
+
+        string cleanedName = SanitizeDisplayName(requestedName.ToString());
+        DisplayName.Value = new FixedString64Bytes(cleanedName);
+    }
+
+    private static string SanitizeDisplayName(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "Glimp Player";
+
+        System.Text.StringBuilder builder = new System.Text.StringBuilder(20);
+        for (int i = 0; i < value.Length && builder.Length < 20; i++)
+        {
+            char character = value[i];
+            if (char.IsLetterOrDigit(character) ||
+                character == ' ' || character == '_' || character == '-')
+            {
+                builder.Append(character);
+            }
+        }
+
+        string cleaned = builder.ToString().Trim();
+        return string.IsNullOrWhiteSpace(cleaned) ? "Glimp Player" : cleaned;
     }
 
     /// <summary>

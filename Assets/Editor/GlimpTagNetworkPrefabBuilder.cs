@@ -117,6 +117,28 @@ public static class GlimpTagNetworkPrefabBuilder
         startMenu.autoStartDelay = 5f;
 
         Transform remoteVisualRoot = CreateChild(root.transform, "Remote Avatar Visuals");
+
+        GameObject nameplateObject = new GameObject("Remote Nameplate");
+        nameplateObject.transform.SetParent(remoteVisualRoot, false);
+        nameplateObject.transform.localPosition = new Vector3(0f, 2.15f, 0f);
+        TextMesh nameplateText = nameplateObject.AddComponent<TextMesh>();
+        nameplateText.anchor = TextAnchor.MiddleCenter;
+        nameplateText.alignment = TextAlignment.Center;
+        nameplateText.fontSize = 48;
+        nameplateText.characterSize = 0.035f;
+        nameplateText.fontStyle = FontStyle.Bold;
+        nameplateText.color = Color.white;
+        nameplateText.text = "GLIMP PLAYER\nSAFE";
+        nameplateText.richText = false;
+
+        MeshRenderer nameplateRenderer = nameplateObject.GetComponent<MeshRenderer>();
+        if (nameplateRenderer != null)
+        {
+            nameplateRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            nameplateRenderer.receiveShadows = false;
+        }
+
+        GlimpTagNetworkNameplate nameplate = root.AddComponent<GlimpTagNetworkNameplate>();
         GameObject bodyVisual = CreatePrimitive("Remote Body", PrimitiveType.Capsule,
             remoteVisualRoot, new Vector3(0f, 0.9f, 0f),
             new Vector3(0.62f, 0.82f, 0.62f), bodyMaterial, false);
@@ -136,6 +158,7 @@ public static class GlimpTagNetworkPrefabBuilder
 
         poseSync.Configure(cameraObject.transform, leftSource, rightSource,
             headVisual.transform, leftRemoteHand.transform, rightRemoteHand.transform);
+        nameplate.Configure(networkPlayer, nameplateText);
 
         rig.Configure(body, camera, audioListener, trackingSpace,
             leftSource, rightSource, leftTrigger, rightTrigger,

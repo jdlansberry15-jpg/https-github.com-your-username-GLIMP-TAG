@@ -13,6 +13,7 @@ public sealed class GlimpTagRoomRosterOverlay : MonoBehaviour
 {
     private static GlimpTagRoomRosterOverlay instance;
     private readonly List<VivoxParticipant> participants = new List<VivoxParticipant>();
+    private readonly HashSet<string> speakingNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     private bool subscribedToVivox;
     private string playerNameInput = "Glimp Player";
     private GUIStyle headerStyle;
@@ -64,6 +65,11 @@ public sealed class GlimpTagRoomRosterOverlay : MonoBehaviour
         if (!subscribedToVivox)
             return;
 
+        foreach (VivoxParticipant participant in participants)
+            UnsubscribeParticipant(participant);
+        participants.Clear();
+        speakingNames.Clear();
+
         try
         {
             VivoxService.Instance.ParticipantAddedToChannel -= HandleParticipantAdded;
@@ -86,18 +92,7 @@ public sealed class GlimpTagRoomRosterOverlay : MonoBehaviour
         if (instance == null || string.IsNullOrWhiteSpace(displayName))
             return false;
 
-        foreach (VivoxParticipant participant in instance.participants)
-        {
-            if (participant == null || participant.IsSelf || participant.IsMuted)
-                continue;
-
-            if (participant.SpeechDetected &&
-                string.Equals(participant.DisplayName, displayName,
-                    StringComparison.OrdinalIgnoreCase))
-                return true;
-        }
-
-        return false;
+        return instance.speakingNames.Contains(displayName);
     }
 
     private void TrySubscribeVivox()
@@ -130,12 +125,17 @@ public sealed class GlimpTagRoomRosterOverlay : MonoBehaviour
                 participants[i].ChannelName == participant.ChannelName &&
                 participants[i].PlayerId == participant.PlayerId)
             {
+                UnsubscribeParticipant(participants[i]);
                 participants[i] = participant;
+                SubscribeParticipant(participant);
+                RefreshSpeakingNames();
                 return;
             }
         }
 
         participants.Add(participant);
+        SubscribeParticipant(participant);
+        RefreshSpeakingNames();
     }
 
     private void HandleParticipantRemoved(VivoxParticipant participant)
@@ -143,10 +143,55 @@ public sealed class GlimpTagRoomRosterOverlay : MonoBehaviour
         if (participant == null)
             return;
 
-        participants.RemoveAll(existing =>
-            existing == null ||
-            (existing.ChannelName == participant.ChannelName &&
-             existing.PlayerId == participant.PlayerId));
+        for (int i = participants.Count - 1; i >= 0; i--)
+        {
+            VivoxParticipant existing = participants[i];
+            if (existing == null ||
+                (existing.ChannelName == participant.ChannelName &&
+                 existing.PlayerId == participant.PlayerId))
+            {
+                UnsubscribeParticipant(existing);
+                participants.RemoveAt(i);
+            }
+        }
+
+        RefreshSpeakingNames();
+    }
+
+    private void SubscribeParticipant(VivoxParticipant participant)
+    {
+        if (participant == null)
+            return;
+
+        participant.ParticipantSpeechDetected += HandleParticipantStateChanged;
+        participant.ParticipantMuteStateChanged += HandleParticipantStateChanged;
+    }
+
+    private void UnsubscribeParticipant(VivoxParticipant participant)
+    {
+        if (participant == null)
+            return;
+
+        participant.ParticipantSpeechDetected -= HandleParticipantStateChanged;
+        participant.ParticipantMuteStateChanged -= HandleParticipantStateChanged;
+    }
+
+    private void HandleParticipantStateChanged()
+    {
+        RefreshSpeakingNames();
+    }
+
+    private void RefreshSpeakingNames()
+    {
+        speakingNames.Clear();
+        foreach (VivoxParticipant participant in participants)
+        {
+            if (participant == null || participant.IsSelf || participant.IsMuted ||
+                !participant.SpeechDetected || string.IsNullOrWhiteSpace(participant.DisplayName))
+                continue;
+
+            speakingNames.Add(participant.DisplayName);
+        }
     }
 
     private void OnGUI()
@@ -184,12 +229,7 @@ public sealed class GlimpTagRoomRosterOverlay : MonoBehaviour
 
         if (GUILayout.Button("SAVE PLAYER NAME", GUILayout.Height(34f)))
         {
-            string cleaned = string.IsNullOrWhiteSpace(playerNameInput)
-                ? "Glimp Player"
-                : playerNameInput.Trim();
-
-            if (cleaned.Length > 20)
-                cleaned = cleaned.Substring(0, 20);
+            string cleaned = GlimpTagNetworkPlayer.SanitizeDisplayName(playerNameInput);
 
             PlayerPrefs.SetString("GlimpTag_PlayerName", cleaned);
             PlayerPrefs.Save();

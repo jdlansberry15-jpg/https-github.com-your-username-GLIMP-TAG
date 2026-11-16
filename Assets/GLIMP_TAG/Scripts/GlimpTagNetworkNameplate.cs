@@ -72,7 +72,7 @@ public sealed class GlimpTagNetworkNameplate : MonoBehaviour
 
         if (billboardTransform != null && localCamera != null)
         {
-            Vector3 direction = localCamera.transform.position - billboardTransform.position;
+            Vector3 direction = billboardTransform.position - localCamera.transform.position;
             if (direction.sqrMagnitude > 0.0001f)
                 billboardTransform.rotation = Quaternion.LookRotation(direction, Vector3.up);
         }

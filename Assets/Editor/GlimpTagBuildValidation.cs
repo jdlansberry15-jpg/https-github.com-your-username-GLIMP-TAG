@@ -114,6 +114,7 @@ public sealed class GlimpTagBuildValidation : IPreprocessBuildWithReport
         Require(prefab.GetComponent<Rigidbody>() != null, "Player prefab root needs Rigidbody.", errors);
         Require(prefab.GetComponent<CapsuleCollider>() != null, "Player prefab root needs CapsuleCollider.", errors);
         Require(prefab.GetComponent<GlimpTagNetworkPlayer>() != null, "Player prefab needs GlimpTagNetworkPlayer.", errors);
+        Require(prefab.GetComponent<GlimpTagNetworkNameplate>() != null, "Player prefab needs GlimpTagNetworkNameplate.", errors);
         Require(prefab.GetComponent<GlimpTagOwnerNetworkTransform>() != null, "Player prefab needs GlimpTagOwnerNetworkTransform.", errors);
         Require(prefab.GetComponent<GlimpTagNetworkAvatarPoseSync>() != null, "Player prefab needs GlimpTagNetworkAvatarPoseSync.", errors);
         Require(prefab.GetComponent<GlimpTagNetworkPlayerRig>() != null, "Player prefab needs GlimpTagNetworkPlayerRig.", errors);
@@ -145,6 +146,11 @@ public sealed class GlimpTagBuildValidation : IPreprocessBuildWithReport
             Require(remoteVisuals.Find("Remote Head") != null, "Remote head visual is missing.", errors);
             Require(remoteVisuals.Find("Remote Left Hand") != null, "Remote left hand visual is missing.", errors);
             Require(remoteVisuals.Find("Remote Right Hand") != null, "Remote right hand visual is missing.", errors);
+            Transform remoteNameplate = remoteVisuals.Find("Remote Nameplate");
+            Require(remoteNameplate != null, "Remote nameplate is missing.", errors);
+            if (remoteNameplate != null)
+                Require(remoteNameplate.GetComponent<TextMesh>() != null,
+                    "Remote nameplate TextMesh is missing.", errors);
         }
 
         GlimpTagNetworkAvatarPoseSync poseSync = prefab.GetComponent<GlimpTagNetworkAvatarPoseSync>();

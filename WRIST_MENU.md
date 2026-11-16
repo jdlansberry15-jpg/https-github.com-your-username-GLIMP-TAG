@@ -17,11 +17,10 @@ The Editor network-player prefab builder adds and configures `GlimpTagWristMenu`
 - Left X / left-hand pinch: open or close the wrist menu.
 - Right trigger / right-hand pinch: activate the button currently under the pointer.
 - MUTE MIC / UNMUTE MIC: changes only the local microphone.
-- CREATE ROOM: creates a private Relay room and displays the host code.
 - LEAVE ROOM: shuts down the current Relay/Netcode room.
 - CLOSE MENU: hides the wrist menu.
 
-Joining a friend's room by code remains in the existing lobby panel; the wrist menu does not include a full virtual keyboard yet.
+Create Room and Join Room remain in the existing lobby screen because the network player (and therefore the wrist menu) only exists after a room session has started. Joining by code remains in that lobby screen. The start screen's X-button action takes priority until locomotion has started, so the first X press does not accidentally open the wrist menu.
 
 ## Compatibility and validation
 The implementation uses the project's existing Unity 6000.3.28f1, XR Hands 1.7.3, Input System 1.20.1, Netcode for GameObjects 2.13.3, Multiplayer Services 2.4.1, and Vivox 16.12.1 pins. It uses Unity XR input-device features and XR Hands index/thumb joint APIs already used by the project.

@@ -33,6 +33,7 @@ public sealed class GlimpTagWristMenu : NetworkBehaviour
 
     private GlimpTagRelaySession relaySession;
     private GlimpTagVoiceChat voiceChat;
+    private GlimpTagStartMenu startMenu;
     private XRHandSubsystem handSubsystem;
     private InputDevice leftController;
     private InputDevice rightController;
@@ -55,12 +56,10 @@ public sealed class GlimpTagWristMenu : NetworkBehaviour
     public override void OnNetworkSpawn()
     {
         if (!IsOwner)
-        {
-            enabled = false;
             return;
-        }
 
         RefreshReferences();
+        startMenu = GetComponent<GlimpTagStartMenu>();
         RefreshInputDevices();
         RefreshHandSubsystem();
         BuildMenu();
@@ -91,6 +90,12 @@ public sealed class GlimpTagWristMenu : NetworkBehaviour
 
         bool leftTogglePressed = ReadButton(leftController, CommonUsages.primaryButton) ||
             IsPinching(Handedness.Left);
+        if (startMenu != null && !startMenu.HasStarted)
+        {
+            leftToggleWasPressed = leftTogglePressed;
+            return;
+        }
+
         if (leftTogglePressed && !leftToggleWasPressed)
             SetMenuOpen(!menuOpen);
         leftToggleWasPressed = leftTogglePressed;
@@ -217,7 +222,7 @@ public sealed class GlimpTagWristMenu : NetworkBehaviour
 
         CreateButton("Microphone", "MIC OFFLINE", -0.075f,
             new Color(0.10f, 0.36f, 0.42f), ToggleMicrophone, out microphoneButtonText);
-        CreateButton("Room", "CREATE ROOM", -0.19f,
+        CreateButton("Room", "LEAVE ROOM", -0.19f,
             new Color(0.28f, 0.34f, 0.18f), ToggleRoom, out roomButtonText);
         CreateButton("Close", "CLOSE MENU", -0.305f,
             new Color(0.30f, 0.20f, 0.16f), () => SetMenuOpen(false), out _);
@@ -359,11 +364,14 @@ public sealed class GlimpTagWristMenu : NetworkBehaviour
             return;
         }
 
-        if (manager != null && manager.IsListening)
-            relaySession.LeaveRoom();
-        else
-            _ = relaySession.HostRoomAsync();
+        if (manager == null || !manager.IsListening)
+        {
+            if (statusText != null)
+                statusText.text = "USE THE LOBBY SCREEN TO JOIN";
+            return;
+        }
 
+        relaySession.LeaveRoom();
         RefreshMenuText();
     }
 
@@ -379,9 +387,9 @@ public sealed class GlimpTagWristMenu : NetworkBehaviour
 
         if (manager == null || !manager.IsListening)
         {
-            statusText.text = "NOT IN ROOM\nOPEN LOBBY OR CREATE";
+            statusText.text = "NOT IN ROOM\nUSE THE LOBBY SCREEN";
             roomCodeText.text = "";
-            roomButtonText.text = "CREATE ROOM";
+            roomButtonText.text = "ROOM OFFLINE";
         }
         else if (!inRoom)
         {

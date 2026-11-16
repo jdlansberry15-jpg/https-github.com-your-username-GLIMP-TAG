@@ -10,6 +10,8 @@ public sealed class GlimpTagStartMenu : MonoBehaviour
     public GlimpTagLocomotion locomotion;
     [Min(1f)] public float autoStartDelay = 8f;
 
+    public bool HasStarted => started;
+
     private bool started;
     private float autoStartAt;
 

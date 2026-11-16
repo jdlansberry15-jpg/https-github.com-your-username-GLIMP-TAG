@@ -214,10 +214,8 @@ public sealed class GlimpTagVoiceChat : MonoBehaviour
 
         if (!vivoxLoggedIn)
         {
-            string displayName = PlayerPrefs.GetString("GlimpTag_PlayerName", "Glimp Player");
-            displayName = string.IsNullOrWhiteSpace(displayName)
-                ? "Glimp Player"
-                : displayName.Trim();
+            string displayName = GlimpTagNetworkPlayer.SanitizeDisplayName(
+                PlayerPrefs.GetString("GlimpTag_PlayerName", "Glimp Player"));
 
             LoginOptions options = new LoginOptions
             {

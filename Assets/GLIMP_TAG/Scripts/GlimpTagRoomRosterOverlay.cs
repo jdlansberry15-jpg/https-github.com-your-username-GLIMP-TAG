@@ -11,6 +11,7 @@ using UnityEngine.SceneManagement;
 /// </summary>
 public sealed class GlimpTagRoomRosterOverlay : MonoBehaviour
 {
+    private static GlimpTagRoomRosterOverlay instance;
     private readonly List<VivoxParticipant> participants = new List<VivoxParticipant>();
     private bool subscribedToVivox;
     private string playerNameInput = "Glimp Player";
@@ -43,6 +44,7 @@ public sealed class GlimpTagRoomRosterOverlay : MonoBehaviour
 
     private void Awake()
     {
+        instance = this;
         playerNameInput = PlayerPrefs.GetString("GlimpTag_PlayerName", "Glimp Player");
         TrySubscribeVivox();
     }
@@ -55,6 +57,9 @@ public sealed class GlimpTagRoomRosterOverlay : MonoBehaviour
 
     private void OnDestroy()
     {
+        if (instance == this)
+            instance = null;
+
         SceneManager.sceneLoaded -= OnSceneLoaded;
         if (!subscribedToVivox)
             return;
@@ -70,6 +75,29 @@ public sealed class GlimpTagRoomRosterOverlay : MonoBehaviour
         }
 
         subscribedToVivox = false;
+    }
+
+    /// <summary>
+    /// Used by remote world-space nameplates to mirror Vivox speaking state.
+    /// Names are matched case-insensitively to the server-synchronized roster.
+    /// </summary>
+    public static bool IsDisplayNameSpeaking(string displayName)
+    {
+        if (instance == null || string.IsNullOrWhiteSpace(displayName))
+            return false;
+
+        foreach (VivoxParticipant participant in instance.participants)
+        {
+            if (participant == null || participant.IsSelf || participant.IsMuted)
+                continue;
+
+            if (participant.SpeechDetected &&
+                string.Equals(participant.DisplayName, displayName,
+                    StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
     }
 
     private void TrySubscribeVivox()
@@ -188,11 +216,17 @@ public sealed class GlimpTagRoomRosterOverlay : MonoBehaviour
                 continue;
 
             GlimpTagNetworkPlayer player = client.PlayerObject.GetComponent<GlimpTagNetworkPlayer>();
+            string playerName = player != null
+                ? player.DisplayName.Value.ToString()
+                : "Player " + client.ClientId;
+            if (string.IsNullOrWhiteSpace(playerName))
+                playerName = "Player " + client.ClientId;
+
             string playerState = player != null && player.IsTagged.Value
                 ? "INFECTED"
                 : "SAFE";
 
-            GUILayout.Label("Player " + client.ClientId + "  —  " + playerState, rowStyle);
+            GUILayout.Label(playerName + "  —  " + playerState, rowStyle);
         }
     }
 

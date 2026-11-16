@@ -139,6 +139,7 @@ public static class GlimpTagNetworkPrefabBuilder
         }
 
         GlimpTagNetworkNameplate nameplate = root.AddComponent<GlimpTagNetworkNameplate>();
+        GlimpTagWristMenu wristMenu = root.AddComponent<GlimpTagWristMenu>();
         GameObject bodyVisual = CreatePrimitive("Remote Body", PrimitiveType.Capsule,
             remoteVisualRoot, new Vector3(0f, 0.9f, 0f),
             new Vector3(0.62f, 0.82f, 0.62f), bodyMaterial, false);
@@ -159,6 +160,7 @@ public static class GlimpTagNetworkPrefabBuilder
         poseSync.Configure(cameraObject.transform, leftSource, rightSource,
             headVisual.transform, leftRemoteHand.transform, rightRemoteHand.transform);
         nameplate.Configure(networkPlayer, nameplateText);
+        wristMenu.Configure(trackingSpace, leftSource, rightSource);
 
         rig.Configure(body, camera, audioListener, trackingSpace,
             leftSource, rightSource, leftTrigger, rightTrigger,

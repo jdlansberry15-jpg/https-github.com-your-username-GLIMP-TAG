@@ -115,6 +115,7 @@ public sealed class GlimpTagBuildValidation : IPreprocessBuildWithReport
         Require(prefab.GetComponent<CapsuleCollider>() != null, "Player prefab root needs CapsuleCollider.", errors);
         Require(prefab.GetComponent<GlimpTagNetworkPlayer>() != null, "Player prefab needs GlimpTagNetworkPlayer.", errors);
         Require(prefab.GetComponent<GlimpTagNetworkNameplate>() != null, "Player prefab needs GlimpTagNetworkNameplate.", errors);
+        Require(prefab.GetComponent<GlimpTagWristMenu>() != null, "Player prefab needs GlimpTagWristMenu.", errors);
         Require(prefab.GetComponent<GlimpTagOwnerNetworkTransform>() != null, "Player prefab needs GlimpTagOwnerNetworkTransform.", errors);
         Require(prefab.GetComponent<GlimpTagNetworkAvatarPoseSync>() != null, "Player prefab needs GlimpTagNetworkAvatarPoseSync.", errors);
         Require(prefab.GetComponent<GlimpTagNetworkPlayerRig>() != null, "Player prefab needs GlimpTagNetworkPlayerRig.", errors);

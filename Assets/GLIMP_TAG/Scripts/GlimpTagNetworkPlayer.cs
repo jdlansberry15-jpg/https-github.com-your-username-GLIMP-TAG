@@ -117,7 +117,7 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
         DisplayName.Value = new FixedString64Bytes(cleanedName);
     }
 
-    private static string SanitizeDisplayName(string value)
+    public static string SanitizeDisplayName(string value)
     {
         if (string.IsNullOrWhiteSpace(value))
             return "Glimp Player";

@@ -5,10 +5,11 @@ This increment adds server-synchronized display names and world-space nameplates
 ## Behavior
 
 1. A player saves a name in the existing roster overlay.
-2. When their network player spawns, the owner submits that name through an owner-authorized RPC.
-3. The server sanitizes it and publishes a `FixedString64Bytes` NetworkVariable.
-4. The generated remote avatar nameplate reads the name and current SAFE / INFECTED state.
-5. If the matching Vivox participant is speaking, the nameplate displays SPEAKING in cyan.
+2. The roster, Vivox login, and network player use one shared name sanitizer so the displayed names match.
+3. When their network player spawns, the owner submits that name through an owner-authorized RPC.
+4. The server sanitizes it and publishes a `FixedString64Bytes` NetworkVariable.
+5. The generated remote avatar nameplate reads the name and current SAFE / INFECTED state.
+6. Vivox speech and mute-state events refresh the local speaking state; a matching speaking player gets a cyan SPEAKING label.
 
 The TextMesh is attached under Remote Avatar Visuals, which is disabled for the local owner. It therefore appears only above remote avatars.
 

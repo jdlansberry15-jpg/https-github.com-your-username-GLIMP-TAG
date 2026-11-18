@@ -24,6 +24,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Check validator syntax
+        run: python -m py_compile tools/validate_project.py
+
       - name: Validate Unity project metadata
         run: python tools/validate_project.py --report build/glimp-tag-preflight.json
 

@@ -6,15 +6,20 @@ The repository is being prepared for Unity Build Automation so the Android build
 
 The project is pinned to **Unity 6000.3.28f1 (Unity 6.3 LTS)** in ProjectSettings/ProjectVersion.txt. Unity Build Automation currently lists Unity 6000.3 LTS as supported.
 
-The XR packages are pinned to versions released for Unity 6000.3:
+The manifest pins these XR and multiplayer dependencies:
 - OpenXR Plugin 1.16.1
 - XR Plug-in Management 4.6.1
 - XR Hands 1.7.3
 - Unity OpenXR Meta 2.7.0
 - Unity Transport 2.7.5
 - Input System 1.20.1
+- Multiplayer Services 2.4.1
+- Netcode for GameObjects 2.13.3
+- Vivox 16.12.1
 
-Unity Netcode for GameObjects 2.13.3 is listed as a pre-release package for Unity 6000.3. It is used by the prototype network player, avatar pose, and infection-round scripts. Revisit the NGO version before a public release.
+**Netcode compatibility correction:** an older version of this guide called NGO 2.13.3 a pre-release for Unity 6000.3. That was outdated. Unity's 6000.3.26f1 release notes show NGO being updated from 2.13.2 to 2.13.3, so 2.13.3 is the released 6000.3 package line used by this 6000.3.28f1 project. The 6000.3 package listing now shows 2.14.0 as a separate pre-release; do not upgrade to 2.14.0 without a compile and multiplayer regression test.
+
+The manifest pins are not proof that every package has resolved or compiled in this project. The first Unity Build Automation run must still confirm Package Manager resolution and C# compilation. See PACKAGE_COMPATIBILITY.md for the source links and status.
 
 ## Set up the cloud build from a Chromebook
 
@@ -42,13 +47,13 @@ If the build configuration asks for Android signing credentials, use a keystore 
 
 After Unity Build Automation reports a successful build:
 1. Download the APK artifact from the build result page.
-2. Open WebADB in Chrome on the Chromebook.
-3. Connect the Quest with a USB-C data cable and choose Connect device in WebADB.
-4. Select the Quest in Chrome's USB picker and accept the Allow USB debugging prompt inside the headset.
-5. Open WebADB's Install APK tool, choose the downloaded GLIMP TAG APK, and install it.
-6. On the headset, open Apps and choose Unknown Sources to launch the test app.
+2. Open a browser-based Quest sideloader such as QuestLoad or Quest Webloader in Chrome.
+3. Connect the Quest with a USB-C data cable and select the headset in the browser's USB picker.
+4. Enable Meta Developer Mode and accept the USB debugging prompt inside the headset.
+5. Choose the downloaded GLIMP TAG APK in the sideloader and install it.
+6. On the headset, open Apps → Unknown Sources to launch the test app.
 
-WebADB advertises one-click APK installation in Chrome through WebUSB, without installing local ADB tools or desktop drivers. A data-capable cable, Chrome USB permission, and the headset's debugging approval are still required. SideQuest also has a Chromebook-compatible web installer at sdq.st/download, mainly for installing its in-VR app.
+Browser sideloaders use WebUSB, so no local ADB installation is needed. They still require a Chromium browser, HTTPS, a data-capable cable, Developer Mode, and the headset's debugging approval. This installation path has not yet been exercised with GLIMP TAG.
 
 ## Important limitations
 
@@ -58,7 +63,6 @@ WebADB advertises one-click APK installation in Chrome through WebUSB, without i
 - If Unity Build Automation reports a compile or XR configuration error, use the build log to identify the first failing script or package before retrying.
 - A successful APK build would still need to be installed and tested on the actual Quest headset.
 
-
 ## Relay room-code dependency
 
-The project now pins `com.unity.services.multiplayer` **2.4.1**, released for Unity 6000.3. The generated NetworkManager receives a Relay session component and the lobby UI uses Relay join codes rather than same-Wi-Fi IP addresses. Before a real connection test, the Unity Cloud project must be linked and Authentication plus Relay enabled in Unity Dashboard. See RELAY_SETUP.md. NGO 2.13.3 remains a pre-release package for Unity 6000.3.
+The project pins `com.unity.services.multiplayer` **2.4.1** for the Unity 6000.3 line. The generated NetworkManager receives a Relay session component and the lobby UI uses Relay join codes rather than same-Wi-Fi IP addresses. Before a real connection test, the Unity Cloud project must be linked and Authentication plus Relay enabled in Unity Dashboard. See RELAY_SETUP.md. NGO 2.13.3 is the released package line for Unity 6000.3.26f1 and later.

@@ -20,6 +20,7 @@ PACKAGES = {
 }
 FILES = [
     "README.md", "CLOUD_BUILD.md", "BUILD_VALIDATION.md", "QUEST_INSTALL.md",
+    "LOCOMOTION_STABILITY.md",
     "Packages/manifest.json", "ProjectSettings/ProjectVersion.txt",
     "Assets/Editor/GlimpTagProjectBuilder.cs",
     "Assets/Editor/GlimpTagNetworkPrefabBuilder.cs",
@@ -90,6 +91,26 @@ def validate(root):
             add("error", "integration-markers", relative + " missing: " + ", ".join(missing))
         else:
             add("pass", "integration-markers", relative + " has expected integration markers.")
+
+    locomotion = texts.get("Assets/GLIMP_TAG/Scripts/GlimpTagLocomotion.cs", "")
+    locomotion_markers = [
+        "hasLeftHistory", "hasRightHistory", "OverlapSphereNonAlloc",
+        "SphereCastNonAlloc", "IsOwnCollider", "activeInHierarchy",
+        "RecenterHandHistory",
+    ]
+    missing_locomotion = [marker for marker in locomotion_markers if marker not in locomotion]
+    if missing_locomotion:
+        add("error", "locomotion-safety", "Locomotion source is missing safety paths: " + ", ".join(missing_locomotion))
+    elif "Physics.CheckSphere(" in locomotion or "Physics.SphereCast(" in locomotion:
+        add("error", "locomotion-safety", "Locomotion reverted to allocating/legacy contact queries.")
+    else:
+        add("pass", "locomotion-safety", "Hand tracking reacquisition, own-collider filtering, and non-alloc contact queries are present.")
+
+    locomotion_doc = texts.get("LOCOMOTION_STABILITY.md", "")
+    if "Quest" in locomotion_doc and "not measured Quest performance results" in locomotion_doc:
+        add("pass", "locomotion-doc", "Locomotion notes document Quest tuning as unverified.")
+    else:
+        add("warning", "locomotion-doc", "Review LOCOMOTION_STABILITY.md for device-test caveats.")
 
     cloud_doc = texts.get("CLOUD_BUILD.md", "")
     if editor_version and editor_version in cloud_doc:

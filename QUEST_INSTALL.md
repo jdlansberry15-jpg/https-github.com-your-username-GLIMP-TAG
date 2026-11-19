@@ -1,17 +1,41 @@
 # Install a Quest APK from a Chromebook
 
-Once a GLIMP TAG APK has been built in Unity Build Automation:
+This is the planned no-PC installation path after Unity Build Automation produces a GLIMP TAG APK.
 
-1. Download the APK file from the cloud build artifact page.
-2. Open [WebADB](https://webadb.online/) in Google Chrome on the Chromebook.
-3. Connect the Quest 2, Quest 3, or Quest 3S with a USB-C cable that supports data.
-4. In WebADB, choose **Connect device** and select the Quest from Chrome's USB device picker.
-5. Put on the headset and approve the **Allow USB debugging** prompt.
-6. Open WebADB's **Install APK** tool, choose the downloaded GLIMP TAG APK, and start the installation.
-7. On the headset, open Apps and choose the **Unknown Sources** filter to launch GLIMP TAG.
+## Before connecting
 
-WebADB advertises one-click APK installation through Chrome/WebUSB without installing ADB or desktop drivers. The Quest connection still depends on Developer Mode, a data-capable cable, Chrome's USB permission, and the headset's debugging approval.
+- Meta Quest 2, Quest 3, or Quest 3S.
+- Meta Developer Mode enabled for the headset.
+- A USB-C cable that supports data (not charge-only).
+- Google Chrome on the Chromebook.
+- The downloaded GLIMP TAG `.apk` file.
 
-If WebADB does not detect the headset, try another USB-C data cable/port and restart the headset. SideQuest also provides a Chromebook-compatible web installer at [sdq.st/download](https://sdq.st/download), but that is primarily for installing SideQuest's in-VR app.
+Developer Mode and USB debugging approval are Meta headset/account requirements. They cannot be bypassed by a browser sideloader.
 
-Installation of this GLIMP TAG build has not been tested yet.
+## Browser installation with QuestLoad
+
+1. Download the GLIMP TAG APK from the Unity Build Automation artifact page.
+2. Open [QuestLoad](https://frizzlem.github.io/QuestLoad/) in Chrome on the Chromebook.
+3. Connect the Quest to the Chromebook with the USB-C data cable.
+4. Choose **Connect Quest** and select the headset in Chrome's USB device picker.
+5. Put on the headset and approve **Allow USB debugging**.
+6. In QuestLoad, choose the downloaded `.apk` file and select **Install APK**.
+7. Wait for the install log to report success.
+8. On the headset, open Apps → **Unknown Sources** and launch GLIMP TAG.
+
+QuestLoad documents support for Quest 2, Quest 3, Quest 3S, and Chrome/Edge browsers with WebUSB. See the [QuestLoad project and requirements](https://github.com/FrizzleM/QuestLoad).
+
+## Alternative browser sideloader
+
+[Quest Webloader](https://webloader.app/) also uses WebUSB in Chrome and supports APK installation without a local ADB binary. It requires the same Developer Mode, data cable, and USB debugging approval.
+
+## Troubleshooting
+
+- If Chrome does not show the headset, try another USB-C data cable or Chromebook port.
+- Unlock the headset and approve the USB debugging prompt inside the headset.
+- Confirm Developer Mode is enabled before reconnecting.
+- Keep the sideloader tab open until installation finishes.
+
+## Status
+
+This is an installation guide only. GLIMP TAG does not have a verified APK yet, and the installation procedure has not been tested with this project.

@@ -97,8 +97,11 @@ public sealed class GlimpTagLocomotion : MonoBehaviour
                 previousRightAfterLeft, rightAfterLeft);
         }
 
+        float speedStepLimit = Mathf.Max(0.5f, maxSpeed) * Time.fixedDeltaTime;
+        float configuredStepLimit = Mathf.Max(0.01f, maxCorrectionPerStep);
+        float stepDistanceLimit = Mathf.Min(configuredStepLimit, speedStepLimit);
         Vector3 appliedCorrection = Vector3.ClampMagnitude(
-            leftCorrection + rightCorrection, maxCorrectionPerStep);
+            leftCorrection + rightCorrection, stepDistanceLimit);
 
         if (appliedCorrection.sqrMagnitude > 0.000001f)
             body.MovePosition(body.position + appliedCorrection);

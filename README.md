@@ -6,7 +6,7 @@ GLIMP TAG is an original arm-swing VR tag-game prototype for Meta Quest 2, Quest
 
 - Unity XR center-eye camera tracking
 - XR Hands palm tracking with Quest Touch controller fallback
-- Hand-contact locomotion with correction and speed limits
+- Hand-contact locomotion with tracking-loss recovery, own-collider filtering, and speed limits
 - An original generated forest arena with treehouse, circular bridge, climbing trees, gazebo, cave, rocks, and six spawn points
 - Editor-generated network player prefab with local owner XR rig and remote avatar visuals
 - Head and hand pose synchronization at a default 20 Hz
@@ -21,7 +21,12 @@ GLIMP TAG is an original arm-swing VR tag-game prototype for Meta Quest 2, Quest
 
 The project is pinned to Unity 6.3 LTS and prepared for Unity Build Automation. The intended workflow is to connect this public GitHub repository to Unity Build Automation in a browser, build Android in the cloud, and download the APK. See CLOUD_BUILD.md.
 
-After a cloud build produces an APK, a Chromebook can use WebADB in Chrome with a data-capable USB-C cable to install it. See QUEST_INSTALL.md.
+After a cloud build produces an APK, a Chromebook can use a browser-based Quest sideloader in Chrome with a data-capable USB-C cable to install it. See QUEST_INSTALL.md.
+
+## Compatibility and locomotion notes
+
+- PACKAGE_COMPATIBILITY.md records current Unity 6000.3 package/build checks and the important NGO 2.13.3 release-note correction.
+- LOCOMOTION_STABILITY.md explains hand-tracking loss/reacquisition safety and the remaining headset test plan.
 
 ## Important status
 

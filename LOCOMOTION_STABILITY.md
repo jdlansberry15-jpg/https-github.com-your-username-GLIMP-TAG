@@ -18,12 +18,13 @@ This increment hardens the hand-contact locomotion prototype for Quest controlle
 | Setting | Default |
 |---|---:|
 | Hand collision radius | 0.12 m |
-| Maximum correction per physics step | 0.45 m |
+| Configured correction ceiling | 0.45 m |
+| Actual correction per step | min(0.45 m, 8 m/s × fixedDeltaTime) |
 | Maximum body speed | 8 m/s |
 | Body velocity damping | 0.03 |
 | Physics query buffers | 24 hits |
 
-These are conservative starting values, not measured Quest performance results. The game still needs on-device comfort tuning.
+The 0.45 m value is only a hard ceiling. The actual body correction is also capped by the 8 m/s speed budget multiplied by the current physics step (about 0.089 m at 90 Hz). These are conservative starting values, not measured Quest performance results. The game still needs on-device comfort tuning.
 
 ## How tracking is handled
 

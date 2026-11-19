@@ -20,7 +20,7 @@ PACKAGES = {
 }
 FILES = [
     "README.md", "CLOUD_BUILD.md", "BUILD_VALIDATION.md", "QUEST_INSTALL.md",
-    "LOCOMOTION_STABILITY.md",
+    "LOCOMOTION_STABILITY.md", "PACKAGE_COMPATIBILITY.md",
     "Packages/manifest.json", "ProjectSettings/ProjectVersion.txt",
     "Assets/Editor/GlimpTagProjectBuilder.cs",
     "Assets/Editor/GlimpTagNetworkPrefabBuilder.cs",
@@ -112,7 +112,19 @@ def validate(root):
     else:
         add("warning", "locomotion-doc", "Review LOCOMOTION_STABILITY.md for device-test caveats.")
 
+    package_doc = texts.get("PACKAGE_COMPATIBILITY.md", "")
+    package_markers = ["6000.3.26f1", "2.13.3", "2.14.0", "OverlapSphereNonAlloc", "SphereCastNonAlloc"]
+    missing_package_markers = [marker for marker in package_markers if marker not in package_doc]
     cloud_doc = texts.get("CLOUD_BUILD.md", "")
+    if missing_package_markers:
+        add("error", "package-compatibility", "PACKAGE_COMPATIBILITY.md missing: " + ", ".join(missing_package_markers))
+    elif "remains a pre-release package for Unity 6000.3" in cloud_doc:
+        add("error", "package-compatibility", "CLOUD_BUILD.md contains the outdated NGO 2.13.3 lifecycle note.")
+    elif "6000.3.26f1" in cloud_doc:
+        add("pass", "package-compatibility", "NGO 2.13.3 lifecycle note matches Unity 6000.3.26f1 release notes.")
+    else:
+        add("warning", "package-compatibility", "Review the documented NGO package lifecycle for Unity 6000.3.")
+
     if editor_version and editor_version in cloud_doc:
         add("pass", "cloud-doc-version", "CLOUD_BUILD.md matches ProjectVersion.txt.")
     else:

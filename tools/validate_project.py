@@ -96,7 +96,7 @@ def validate(root):
     locomotion_markers = [
         "hasLeftHistory", "hasRightHistory", "OverlapSphereNonAlloc",
         "SphereCastNonAlloc", "IsOwnCollider", "activeInHierarchy",
-        "RecenterHandHistory",
+        "RecenterHandHistory", "speedStepLimit", "stepDistanceLimit",
     ]
     missing_locomotion = [marker for marker in locomotion_markers if marker not in locomotion]
     if missing_locomotion:
@@ -107,7 +107,7 @@ def validate(root):
         add("pass", "locomotion-safety", "Hand tracking reacquisition, own-collider filtering, and non-alloc contact queries are present.")
 
     locomotion_doc = texts.get("LOCOMOTION_STABILITY.md", "")
-    if "Quest" in locomotion_doc and "not measured Quest performance results" in locomotion_doc:
+    if "Quest" in locomotion_doc and "not measured Quest performance results" in locomotion_doc and "0.089 m at 90 Hz" in locomotion_doc:
         add("pass", "locomotion-doc", "Locomotion notes document Quest tuning as unverified.")
     else:
         add("warning", "locomotion-doc", "Review LOCOMOTION_STABILITY.md for device-test caveats.")

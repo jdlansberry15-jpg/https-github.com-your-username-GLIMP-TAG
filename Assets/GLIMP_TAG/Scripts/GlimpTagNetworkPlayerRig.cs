@@ -150,6 +150,27 @@ public sealed class GlimpTagNetworkPlayerRig : NetworkBehaviour
             remoteAvatarRoot.gameObject.SetActive(true);
     }
 
+    /// <summary>
+    /// Resets the owning local player to their deterministic spawn slot between rounds.
+    /// Called only by the server-directed owner RPC on this player's owner instance.
+    /// </summary>
+    public void ResetOwnerToSpawn()
+    {
+        if (!IsOwner)
+            return;
+
+        PlaceAtForestSpawn();
+
+        if (playerBody != null)
+        {
+            playerBody.velocity = Vector3.zero;
+            playerBody.angularVelocity = Vector3.zero;
+        }
+
+        if (locomotion != null)
+            locomotion.RecenterHandHistory();
+    }
+
     private void PlaceAtForestSpawn()
     {
         GlimpTagRuntimeBootstrap arena = FindObjectOfType<GlimpTagRuntimeBootstrap>();

@@ -28,6 +28,7 @@ FILES = [
     "Assets/GLIMP_TAG/Scripts/GlimpTagRuntimeBootstrap.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagLocomotion.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagNetworkPlayer.cs",
+    "Assets/GLIMP_TAG/Scripts/GlimpTagNetworkPlayerRig.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagRelaySession.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagVoiceChat.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagWristMenu.cs",
@@ -108,7 +109,7 @@ def validate(root):
 
     network_player = texts.get("Assets/GLIMP_TAG/Scripts/GlimpTagNetworkPlayer.cs", "")
     network_rig = texts.get("Assets/GLIMP_TAG/Scripts/GlimpTagNetworkPlayerRig.cs", "")
-    round_markers = ["[Rpc(SendTo.Owner)]", "ResetOwnerForRoundRpc", "RoundPhase.Value = RoundActive"]
+    round_markers = ["[Rpc(SendTo.Owner)]", "ResetOwnerForRoundRpc", "players[i].ResetOwnerForRoundRpc();", "RoundPhase.Value = RoundActive"]
     missing_round = [marker for marker in round_markers if marker not in network_player]
     if missing_round or "ResetOwnerToSpawn" not in network_rig or "RecenterHandHistory" not in network_rig:
         details = missing_round + [marker for marker in ["ResetOwnerToSpawn", "RecenterHandHistory"] if marker not in network_rig]
@@ -117,7 +118,7 @@ def validate(root):
         add("pass", "round-reset", "Each new round requests an owner-side spawn reset and clears locomotion hand history.")
 
     round_doc = texts.get("ROUND_RESET.md", "")
-    if "owner-authoritative" in round_doc and "not Unity-compiled or Quest-tested" in round_doc:
+    if "owner-authoritative" in round_doc and "not been Unity-compiled or Quest-tested" in round_doc:
         add("pass", "round-reset-doc", "Round reset notes document the authority model and test limitations.")
     else:
         add("warning", "round-reset-doc", "Review ROUND_RESET.md for owner-authority and device-test caveats.")

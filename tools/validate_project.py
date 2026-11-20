@@ -30,6 +30,7 @@ FILES = [
     "Assets/GLIMP_TAG/Scripts/GlimpTagNetworkPlayer.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagNetworkPlayerRig.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagRelaySession.cs",
+    "Assets/GLIMP_TAG/Scripts/GlimpTagRelaySession.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagVoiceChat.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagWristMenu.cs",
 ]
@@ -106,6 +107,15 @@ def validate(root):
         add("error", "locomotion-safety", "Locomotion reverted to allocating/legacy contact queries.")
     else:
         add("pass", "locomotion-safety", "Hand tracking reacquisition, own-collider filtering, and non-alloc contact queries are present.")
+
+    arena_source = texts.get("Assets/GLIMP_TAG/Scripts/GlimpTagRuntimeBootstrap.cs", "")
+    relay_source = texts.get("Assets/GLIMP_TAG/Scripts/GlimpTagRelaySession.cs", "")
+    spawn_markers = ["public const int SpawnPointCount = 8", "new Transform[SpawnPointCount]", "spawnRadius = 20f", "Quaternion.LookRotation"]
+    missing_spawn = [marker for marker in spawn_markers if marker not in arena_source]
+    if missing_spawn or "Range(1, 7)" not in relay_source or "maxRemotePlayers = 7" not in relay_source:
+        add("error", "spawn-capacity", "Eight-player spawn layout does not match Relay capacity: " + ", ".join(missing_spawn))
+    else:
+        add("pass", "spawn-capacity", "Eight ground spawn slots match one host plus up to seven Relay guests.")
 
     network_player = texts.get("Assets/GLIMP_TAG/Scripts/GlimpTagNetworkPlayer.cs", "")
     network_rig = texts.get("Assets/GLIMP_TAG/Scripts/GlimpTagNetworkPlayerRig.cs", "")

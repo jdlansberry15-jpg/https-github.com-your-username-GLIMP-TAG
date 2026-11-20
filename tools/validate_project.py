@@ -20,7 +20,7 @@ PACKAGES = {
 }
 FILES = [
     "README.md", "CLOUD_BUILD.md", "BUILD_VALIDATION.md", "QUEST_INSTALL.md",
-    "LOCOMOTION_STABILITY.md", "PACKAGE_COMPATIBILITY.md",
+    "LOCOMOTION_STABILITY.md", "PACKAGE_COMPATIBILITY.md", "ROUND_RESET.md",
     "Packages/manifest.json", "ProjectSettings/ProjectVersion.txt",
     "Assets/Editor/GlimpTagProjectBuilder.cs",
     "Assets/Editor/GlimpTagNetworkPrefabBuilder.cs",
@@ -105,6 +105,22 @@ def validate(root):
         add("error", "locomotion-safety", "Locomotion reverted to allocating/legacy contact queries.")
     else:
         add("pass", "locomotion-safety", "Hand tracking reacquisition, own-collider filtering, and non-alloc contact queries are present.")
+
+    network_player = texts.get("Assets/GLIMP_TAG/Scripts/GlimpTagNetworkPlayer.cs", "")
+    network_rig = texts.get("Assets/GLIMP_TAG/Scripts/GlimpTagNetworkPlayerRig.cs", "")
+    round_markers = ["[Rpc(SendTo.Owner)]", "ResetOwnerForRoundRpc", "RoundPhase.Value = RoundActive"]
+    missing_round = [marker for marker in round_markers if marker not in network_player]
+    if missing_round or "ResetOwnerToSpawn" not in network_rig or "RecenterHandHistory" not in network_rig:
+        details = missing_round + [marker for marker in ["ResetOwnerToSpawn", "RecenterHandHistory"] if marker not in network_rig]
+        add("error", "round-reset", "Owner-side round reset is incomplete: " + ", ".join(details))
+    else:
+        add("pass", "round-reset", "Each new round requests an owner-side spawn reset and clears locomotion hand history.")
+
+    round_doc = texts.get("ROUND_RESET.md", "")
+    if "owner-authoritative" in round_doc and "not Unity-compiled or Quest-tested" in round_doc:
+        add("pass", "round-reset-doc", "Round reset notes document the authority model and test limitations.")
+    else:
+        add("warning", "round-reset-doc", "Review ROUND_RESET.md for owner-authority and device-test caveats.")
 
     locomotion_doc = texts.get("LOCOMOTION_STABILITY.md", "")
     if "Quest" in locomotion_doc and "not measured Quest performance results" in locomotion_doc and "0.089 m at 90 Hz" in locomotion_doc:

@@ -254,24 +254,29 @@ public sealed class GlimpTagRuntimeBootstrap : MonoBehaviour
         }
     }
 
+    public const int SpawnPointCount = 8;
+
     private void BuildSpawnPoints()
     {
-        Vector3[] positions =
-        {
-            new Vector3(0f, 0.15f, -8f),
-            new Vector3(7f, 0.15f, -5f),
-            new Vector3(-7f, 0.15f, -5f),
-            new Vector3(7f, 0.15f, 6f),
-            new Vector3(-7f, 0.15f, 6f),
-            new Vector3(0f, 0.15f, 10f)
-        };
+        // Eight evenly spaced ground spawns match Relay's host + seven guests.
+        // The 20 m ring sits outside the main tree ring and inside the rock boundary.
+        const float spawnRadius = 20f;
+        const float angleOffset = Mathf.PI / 8f;
 
-        SpawnPoints = new Transform[positions.Length];
-        for (int i = 0; i < positions.Length; i++)
+        SpawnPoints = new Transform[SpawnPointCount];
+        for (int i = 0; i < SpawnPointCount; i++)
         {
+            float angle = angleOffset + i * (Mathf.PI * 2f / SpawnPointCount);
+            Vector3 position = new Vector3(
+                Mathf.Cos(angle) * spawnRadius,
+                0.15f,
+                Mathf.Sin(angle) * spawnRadius);
+
             GameObject spawn = new GameObject("Spawn Point " + (i + 1));
             spawn.transform.SetParent(worldRoot, false);
-            spawn.transform.position = positions[i];
+            spawn.transform.position = position;
+            Vector3 towardArena = new Vector3(-position.x, 0f, -position.z);
+            spawn.transform.rotation = Quaternion.LookRotation(towardArena, Vector3.up);
             SpawnPoints[i] = spawn.transform;
         }
     }

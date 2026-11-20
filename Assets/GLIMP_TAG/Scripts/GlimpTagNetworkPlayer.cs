@@ -186,6 +186,22 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
         coordinator.RefreshInfectedCount();
     }
 
+    /// <summary>
+    /// The server asks this player's owner to return to their assigned forest spawn
+    /// at the beginning of each round. The owner performs the move because the
+    /// player root uses owner-authoritative NetworkTransform.
+    /// </summary>
+    [Rpc(SendTo.Owner)]
+    private void ResetOwnerForRoundRpc()
+    {
+        if (!IsOwner)
+            return;
+
+        GlimpTagNetworkPlayerRig rig = GetComponent<GlimpTagNetworkPlayerRig>();
+        if (rig != null)
+            rig.ResetOwnerToSpawn();
+    }
+
     private void TickRound(float deltaTime)
     {
         List<GlimpTagNetworkPlayer> players = CollectConnectedPlayers();
@@ -257,6 +273,14 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
         endPauseRemaining = 0f;
         roundTickAccumulator = 0f;
         RoundPhase.Value = RoundActive;
+
+        // Teleport each owner only after the server has selected the next round.
+        // This keeps owner-authoritative movement valid and clears stale hand deltas.
+        for (int i = 0; i < players.Count; i++)
+        {
+            if (players[i] != null)
+                players[i].ResetOwnerForRoundRpc();
+        }
     }
 
     private void FinishRound(int result)

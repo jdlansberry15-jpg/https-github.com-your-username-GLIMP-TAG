@@ -18,11 +18,11 @@ The player root uses `GlimpTagOwnerNetworkTransform`, which is owner-authoritati
 
 ## Spawn selection
 
-The current arena has six ground-level spawn points. The slot is deterministic:
+The current arena has eight ground-level spawn points. The slot is deterministic:
 
-`spawnIndex = OwnerClientId % SpawnPoints.Length`
+`spawnIndex = OwnerClientId % SpawnPoints.Length` (eight slots for the host plus up to seven Relay guests).
 
-This keeps each player's reset location stable between rounds and avoids two players being assigned the same slot while the room has six or fewer participants.
+This keeps each player's reset location stable between rounds and avoids duplicate slots for the full eight-player Relay room.
 
 ## Safety notes
 
@@ -34,4 +34,4 @@ This keeps each player's reset location stable between rounds and avoids two pla
 
 ## Validation status
 
-The GitHub preflight checks the expected RPC and owner-side reset code paths. The change has **not been Unity-compiled or Quest-tested** in this environment. A two-headset Relay test is still required to verify the RPC, transform replication, and spawn spacing in a real session.
+The GitHub preflight checks the expected RPC and owner-side reset code paths, and verifies that eight spawn slots match Relay's host-plus-seven-guest capacity. The change has **not been Unity-compiled or Quest-tested** in this environment. A two-headset Relay test is still required to verify the RPC, transform replication, and spawn spacing in a real session.

@@ -20,7 +20,7 @@ PACKAGES = {
 }
 FILES = [
     "README.md", "CLOUD_BUILD.md", "BUILD_VALIDATION.md", "QUEST_INSTALL.md",
-    "LOCOMOTION_STABILITY.md", "PACKAGE_COMPATIBILITY.md", "ROUND_RESET.md",
+    "LOCOMOTION_STABILITY.md", "PACKAGE_COMPATIBILITY.md", "ROUND_RESET.md", "FALL_RECOVERY.md",
     "Packages/manifest.json", "ProjectSettings/ProjectVersion.txt",
     "Assets/Editor/GlimpTagProjectBuilder.cs",
     "Assets/Editor/GlimpTagNetworkPrefabBuilder.cs",
@@ -126,6 +126,17 @@ def validate(root):
         add("error", "round-reset", "Owner-side round reset is incomplete: " + ", ".join(details))
     else:
         add("pass", "round-reset", "Each new round requests an owner-side spawn reset and clears locomotion hand history.")
+
+    rig_fall = network_rig
+    fall_markers = ["fallResetHeight", "fallResetCooldown", "Time.unscaledTime", "ResetOwnerToSpawn()", "IsOwner"]
+    missing_fall = [marker for marker in fall_markers if marker not in rig_fall]
+    fall_doc = texts.get("FALL_RECOVERY.md", "")
+    if missing_fall:
+        add("error", "fall-recovery", "Owner fall recovery is missing safety paths: " + ", ".join(missing_fall))
+    elif "not been Unity-compiled or Quest-tested" in fall_doc:
+        add("pass", "fall-recovery", "Owner-only fall recovery returns dropped players to their spawn and documents device-test limits.")
+    else:
+        add("warning", "fall-recovery-doc", "Review FALL_RECOVERY.md for explicit device-test limitations.")
 
     round_doc = texts.get("ROUND_RESET.md", "")
     if "owner-authoritative" in round_doc and "not been Unity-compiled or Quest-tested" in round_doc:

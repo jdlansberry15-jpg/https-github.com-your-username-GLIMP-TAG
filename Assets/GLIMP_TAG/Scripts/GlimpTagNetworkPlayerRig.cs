@@ -28,6 +28,12 @@ public sealed class GlimpTagNetworkPlayerRig : NetworkBehaviour
     [Header("Remote avatar")]
     [SerializeField] private Transform remoteAvatarRoot;
 
+    [Header("Fall recovery")]
+    [SerializeField, Min(-50f)] private float fallResetHeight = -8f;
+    [SerializeField, Min(0.25f)] private float fallResetCooldown = 1.25f;
+
+    private float nextFallResetTime;
+
     public void Configure(
         Rigidbody body,
         Camera camera,
@@ -88,6 +94,23 @@ public sealed class GlimpTagNetworkPlayerRig : NetworkBehaviour
             ConfigureLocalOwner();
         else
             ConfigureRemoteReplica();
+    }
+
+    private void Update()
+    {
+        // Only the owning headset can move an owner-authoritative player root.
+        if (!IsSpawned || !IsOwner || Time.unscaledTime < nextFallResetTime)
+            return;
+
+        float playerHeight = playerBody != null
+            ? playerBody.position.y
+            : transform.position.y;
+
+        if (playerHeight >= fallResetHeight)
+            return;
+
+        nextFallResetTime = Time.unscaledTime + Mathf.Max(0.25f, fallResetCooldown);
+        ResetOwnerToSpawn();
     }
 
     private void ConfigureLocalOwner()

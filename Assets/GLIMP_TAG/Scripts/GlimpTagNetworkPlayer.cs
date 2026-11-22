@@ -24,6 +24,8 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
     [SerializeField, Min(15f)] private float roundDurationSeconds = 120f;
     [SerializeField, Min(1f)] private float roundEndPauseSeconds = 5f;
     [SerializeField, Min(0.5f)] private float serverTagDistance = 3f;
+    [SerializeField, Min(0.25f)] private float serverHandTagDistance = 1.35f;
+    [SerializeField, Min(0.5f)] private float serverMaxHandReach = 2.4f;
 
     public NetworkVariable<bool> IsTagged = new NetworkVariable<bool>(
         false, NetworkVariableReadPermission.Everyone,
@@ -142,15 +144,17 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
     /// sender, current infection state, target, and approximate avatar distance.
     /// </summary>
     [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
-    public void RequestTagRpc(ulong targetClientId, RpcParams rpcParams = default)
+    public void RequestTagRpc(ulong targetClientId, bool isLeftHand, RpcParams rpcParams = default)
     {
-        TryTagTargetOnServer(targetClientId, rpcParams.Receive.SenderClientId);
+        TryTagTargetOnServer(targetClientId, rpcParams.Receive.SenderClientId, isLeftHand);
     }
 
     /// <summary>
     /// Server-only path, also usable by server-side collision handling.
+    /// The server reads the attacker's last owner-published hand pose instead
+    /// of trusting a client-supplied world position.
     /// </summary>
-    public void TryTagTargetOnServer(ulong targetClientId, ulong senderClientId)
+    public void TryTagTargetOnServer(ulong targetClientId, ulong senderClientId, bool isLeftHand)
     {
         if (!IsServer || !IsSpawned || senderClientId != OwnerClientId)
             return;
@@ -176,10 +180,58 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
         if (target == null || target == this || target.IsTagged.Value)
             return;
 
-        // Root distance is a coarse server-side anti-spoof check. The hand
-        // trigger supplies contact intent; synchronized hand hitboxes are
-        // still required for accurate gameplay.
+        // Keep a broad root-distance envelope, then validate the actual
+        // attacking hand against the latest networked avatar pose. No client
+        // supplied world position is accepted by this RPC.
         if (Vector3.Distance(transform.position, target.transform.position) > coordinator.serverTagDistance)
+            return;
+
+        GlimpTagNetworkAvatarPoseSync attackerPoseSync =
+            GetComponent<GlimpTagNetworkAvatarPoseSync>();
+        if (attackerPoseSync == null)
+            return;
+
+        GlimpTagAvatarPoseSnapshot attackerPose = attackerPoseSync.AvatarPose.Value;
+        if (!attackerPose.IsValid)
+            return;
+
+        Vector3 attackerHandLocal = isLeftHand
+            ? attackerPose.LeftHandPosition
+            : attackerPose.RightHandPosition;
+        Vector3 attackerHandWorld = transform.TransformPoint(attackerHandLocal);
+        Vector3 attackerReachOrigin = transform.position + Vector3.up * 0.9f;
+
+        // Reject impossible hand poses that stretch far beyond the avatar.
+        if (Vector3.Distance(attackerHandWorld, attackerReachOrigin) >
+            coordinator.serverMaxHandReach)
+            return;
+
+        // Compare against the target torso and, when available, its latest
+        // head/hand snapshot. The tolerance accounts for the 20 Hz pose stream
+        // and normal network delay while remaining much tighter than root range.
+        float nearestTargetDistance = Vector3.Distance(
+            attackerHandWorld, target.transform.position + Vector3.up * 0.9f);
+
+        GlimpTagNetworkAvatarPoseSync targetPoseSync =
+            target.GetComponent<GlimpTagNetworkAvatarPoseSync>();
+        if (targetPoseSync != null)
+        {
+            GlimpTagAvatarPoseSnapshot targetPose = targetPoseSync.AvatarPose.Value;
+            if (targetPose.IsValid)
+            {
+                nearestTargetDistance = Mathf.Min(nearestTargetDistance,
+                    Vector3.Distance(attackerHandWorld,
+                        target.transform.TransformPoint(targetPose.HeadPosition)));
+                nearestTargetDistance = Mathf.Min(nearestTargetDistance,
+                    Vector3.Distance(attackerHandWorld,
+                        target.transform.TransformPoint(targetPose.LeftHandPosition)));
+                nearestTargetDistance = Mathf.Min(nearestTargetDistance,
+                    Vector3.Distance(attackerHandWorld,
+                        target.transform.TransformPoint(targetPose.RightHandPosition)));
+            }
+        }
+
+        if (nearestTargetDistance > coordinator.serverHandTagDistance)
             return;
 
         target.IsTagged.Value = true;

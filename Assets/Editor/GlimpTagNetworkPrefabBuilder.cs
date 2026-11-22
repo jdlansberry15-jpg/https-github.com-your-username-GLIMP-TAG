@@ -101,6 +101,9 @@ public static class GlimpTagNetworkPrefabBuilder
             out SphereCollider rightTrigger, out GlimpTagNetworkTagger rightTagger,
             out Renderer rightSourceRenderer);
 
+        leftTagger.ConfigureHand(true);
+        rightTagger.ConfigureHand(false);
+
         GlimpTagXRHandInput handInput = root.AddComponent<GlimpTagXRHandInput>();
         handInput.Configure(trackingSpace, leftSource, rightSource);
 

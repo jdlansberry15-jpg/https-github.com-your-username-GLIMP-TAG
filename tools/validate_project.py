@@ -19,7 +19,7 @@ PACKAGES = {
     "com.unity.services.vivox": "16.12.1",
 }
 FILES = [
-    "README.md", "CLOUD_BUILD.md", "BUILD_VALIDATION.md", "QUEST_INSTALL.md",
+    "README.md", "CLOUD_BUILD.md", "BUILD_VALIDATION.md", "QUEST_INSTALL.md", "TAG_VALIDATION.md",
     "LOCOMOTION_STABILITY.md", "PACKAGE_COMPATIBILITY.md", "ROUND_RESET.md", "FALL_RECOVERY.md",
     "Packages/manifest.json", "ProjectSettings/ProjectVersion.txt",
     "Assets/Editor/GlimpTagProjectBuilder.cs",
@@ -126,6 +126,34 @@ def validate(root):
         add("error", "round-reset", "Owner-side round reset is incomplete: " + ", ".join(details))
     else:
         add("pass", "round-reset", "Each new round requests an owner-side spawn reset and clears locomotion hand history.")
+
+    tagger_source = texts.get("Assets/GLIMP_TAG/Scripts/GlimpTagNetworkTagger.cs", "")
+    prefab_builder = texts.get("Assets/Editor/GlimpTagNetworkPrefabBuilder.cs", "")
+    tag_doc = texts.get("TAG_VALIDATION.md", "")
+    tag_markers = [
+        "serverHandTagDistance", "serverMaxHandReach",
+        "attackerPoseSync.AvatarPose.Value", "targetPoseSync.AvatarPose.Value",
+        "RequestTagRpc(ulong targetClientId, bool isLeftHand",
+    ]
+    tagger_markers = [
+        "private bool isLeftHand", "ConfigureHand(bool leftHand)",
+        "RequestTagRpc(target.OwnerClientId, isLeftHand)",
+        "TryTagTargetOnServer(target.OwnerClientId, tagger.OwnerClientId, isLeftHand)",
+    ]
+    builder_markers = ["leftTagger.ConfigureHand(true)", "rightTagger.ConfigureHand(false)"]
+    missing_tag = [marker for marker in tag_markers if marker not in network_player]
+    missing_tagger = [marker for marker in tagger_markers if marker not in tagger_source]
+    missing_builder = [marker for marker in builder_markers if marker not in prefab_builder]
+    if missing_tag or missing_tagger or missing_builder:
+        add("error", "server-tag-validation",
+            "Hand-pose tag validation is incomplete: " +
+            ", ".join(missing_tag + missing_tagger + missing_builder))
+    elif "not been Unity-compiled or Quest-tested" in tag_doc:
+        add("pass", "server-tag-validation",
+            "Tag requests identify the attacking hand and the host checks its latest network pose and reach.")
+    else:
+        add("warning", "server-tag-validation-doc",
+            "TAG_VALIDATION.md should explicitly state Unity/Quest testing limits.")
 
     rig_fall = network_rig
     fall_markers = ["fallResetHeight", "fallResetCooldown", "Time.unscaledTime", "ResetOwnerToSpawn()", "IsOwner"]

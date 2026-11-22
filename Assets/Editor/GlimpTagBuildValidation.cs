@@ -129,8 +129,8 @@ public sealed class GlimpTagBuildValidation : IPreprocessBuildWithReport
 
         if (trackingSpace != null)
         {
-            ValidateHandSource(trackingSpace, "Left Hand Tracking Proxy", errors);
-            ValidateHandSource(trackingSpace, "Right Hand Tracking Proxy", errors);
+            ValidateHandSource(trackingSpace, "Left Hand Tracking Proxy", true, errors);
+            ValidateHandSource(trackingSpace, "Right Hand Tracking Proxy", false, errors);
             Transform cameraTransform = trackingSpace.Find("Main Camera");
             Require(cameraTransform != null, "Player prefab is missing its Main Camera.", errors);
             if (cameraTransform != null)
@@ -184,7 +184,8 @@ public sealed class GlimpTagBuildValidation : IPreprocessBuildWithReport
         }
     }
 
-    private static void ValidateHandSource(Transform trackingSpace, string handName, List<string> errors)
+    private static void ValidateHandSource(
+        Transform trackingSpace, string handName, bool expectedLeftHand, List<string> errors)
     {
         Transform hand = trackingSpace.Find(handName);
         Require(hand != null, handName + " is missing.", errors);
@@ -193,8 +194,12 @@ public sealed class GlimpTagBuildValidation : IPreprocessBuildWithReport
 
         SphereCollider sphere = hand.GetComponent<SphereCollider>();
         Require(sphere != null && sphere.isTrigger, handName + " needs a trigger SphereCollider.", errors);
-        Require(hand.GetComponent<GlimpTagNetworkTagger>() != null,
-            handName + " needs GlimpTagNetworkTagger.", errors);
+
+        GlimpTagNetworkTagger tagger = hand.GetComponent<GlimpTagNetworkTagger>();
+        Require(tagger != null, handName + " needs GlimpTagNetworkTagger.", errors);
+        if (tagger != null)
+            Require(tagger.IsLeftHand == expectedLeftHand,
+                handName + " has the wrong hand-side tag validation setting.", errors);
     }
 
     private static void ValidateMainScene(GameObject playerPrefab, List<string> errors)

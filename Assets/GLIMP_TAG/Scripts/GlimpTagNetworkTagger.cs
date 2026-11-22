@@ -8,6 +8,15 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class GlimpTagNetworkTagger : NetworkBehaviour
 {
+    [SerializeField] private bool isLeftHand;
+
+    public bool IsLeftHand => isLeftHand;
+
+    public void ConfigureHand(bool leftHand)
+    {
+        isLeftHand = leftHand;
+    }
+
     private void Reset()
     {
         Collider handCollider = GetComponent<Collider>();
@@ -28,8 +37,8 @@ public class GlimpTagNetworkTagger : NetworkBehaviour
         // Client-owned hand contact sends a request from the player's
         // NetworkObject. RpcInvokePermission.Owner rejects other clients.
         if (tagger.IsOwner)
-            tagger.RequestTagRpc(target.OwnerClientId);
+            tagger.RequestTagRpc(target.OwnerClientId, isLeftHand);
         else if (tagger.IsServer)
-            tagger.TryTagTargetOnServer(target.OwnerClientId, tagger.OwnerClientId);
+            tagger.TryTagTargetOnServer(target.OwnerClientId, tagger.OwnerClientId, isLeftHand);
     }
 }

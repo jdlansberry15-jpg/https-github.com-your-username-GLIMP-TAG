@@ -28,6 +28,7 @@ FILES = [
     "Assets/GLIMP_TAG/Scripts/GlimpTagRuntimeBootstrap.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagLocomotion.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagNetworkPlayer.cs",
+    "Assets/GLIMP_TAG/Scripts/GlimpTagNetworkTagger.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagNetworkPlayerRig.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagRelaySession.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagRelaySession.cs",

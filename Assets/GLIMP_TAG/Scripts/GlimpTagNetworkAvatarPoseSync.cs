@@ -10,6 +10,8 @@ using UnityEngine;
 public struct GlimpTagAvatarPoseSnapshot : INetworkSerializable, IEquatable<GlimpTagAvatarPoseSnapshot>
 {
     public bool IsValid;
+    public bool LeftHandTracked;
+    public bool RightHandTracked;
     public Vector3 HeadPosition;
     public Quaternion HeadRotation;
     public Vector3 LeftHandPosition;
@@ -24,6 +26,8 @@ public struct GlimpTagAvatarPoseSnapshot : INetworkSerializable, IEquatable<Glim
             return new GlimpTagAvatarPoseSnapshot
             {
                 IsValid = false,
+                LeftHandTracked = false,
+                RightHandTracked = false,
                 HeadRotation = Quaternion.identity,
                 LeftHandRotation = Quaternion.identity,
                 RightHandRotation = Quaternion.identity
@@ -34,6 +38,8 @@ public struct GlimpTagAvatarPoseSnapshot : INetworkSerializable, IEquatable<Glim
     public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
     {
         serializer.SerializeValue(ref IsValid);
+        serializer.SerializeValue(ref LeftHandTracked);
+        serializer.SerializeValue(ref RightHandTracked);
         serializer.SerializeValue(ref HeadPosition);
         serializer.SerializeValue(ref HeadRotation);
         serializer.SerializeValue(ref LeftHandPosition);
@@ -45,6 +51,8 @@ public struct GlimpTagAvatarPoseSnapshot : INetworkSerializable, IEquatable<Glim
     public bool Equals(GlimpTagAvatarPoseSnapshot other)
     {
         return IsValid == other.IsValid &&
+            LeftHandTracked == other.LeftHandTracked &&
+            RightHandTracked == other.RightHandTracked &&
             HeadPosition.Equals(other.HeadPosition) &&
             HeadRotation.Equals(other.HeadRotation) &&
             LeftHandPosition.Equals(other.LeftHandPosition) &&
@@ -63,6 +71,8 @@ public struct GlimpTagAvatarPoseSnapshot : INetworkSerializable, IEquatable<Glim
         unchecked
         {
             int hash = IsValid ? 1 : 0;
+            hash = (hash * 31) + (LeftHandTracked ? 1 : 0);
+            hash = (hash * 31) + (RightHandTracked ? 1 : 0);
             hash = (hash * 31) + HeadPosition.GetHashCode();
             hash = (hash * 31) + HeadRotation.GetHashCode();
             hash = (hash * 31) + LeftHandPosition.GetHashCode();
@@ -126,10 +136,17 @@ public sealed class GlimpTagNetworkAvatarPoseSync : NetworkBehaviour
 
         if (IsOwner)
         {
-            AvatarPose.Value = CapturePose();
+            // Do not publish prefab-default hand positions before the first XR tracking update.
+            AvatarPose.Value = CapturePose(false);
             nextSendTime = Time.unscaledTime + 1f / Mathf.Max(1f, sendRate);
         }
-        else if (AvatarPose.Value.IsValid)
+        else
+        {
+            SetTargetActive(remoteLeftHand, false);
+            SetTargetActive(remoteRightHand, false);
+        }
+
+        if (!IsOwner && AvatarPose.Value.IsValid)
         {
             targetPose = AvatarPose.Value;
             hasRemotePose = true;
@@ -151,7 +168,7 @@ public sealed class GlimpTagNetworkAvatarPoseSync : NetworkBehaviour
         {
             if (Time.unscaledTime >= nextSendTime)
             {
-                AvatarPose.Value = CapturePose();
+                AvatarPose.Value = CapturePose(true);
                 nextSendTime = Time.unscaledTime + 1f / Mathf.Max(1f, sendRate);
             }
             return;
@@ -162,26 +179,41 @@ public sealed class GlimpTagNetworkAvatarPoseSync : NetworkBehaviour
 
         float blend = 1f - Mathf.Exp(-remoteSmoothing * Time.unscaledDeltaTime);
         SmoothTransform(remoteHead, targetPose.HeadPosition, targetPose.HeadRotation, blend);
-        SmoothTransform(remoteLeftHand, targetPose.LeftHandPosition, targetPose.LeftHandRotation, blend);
-        SmoothTransform(remoteRightHand, targetPose.RightHandPosition, targetPose.RightHandRotation, blend);
+
+        SetTargetActive(remoteLeftHand, targetPose.LeftHandTracked);
+        SetTargetActive(remoteRightHand, targetPose.RightHandTracked);
+        if (targetPose.LeftHandTracked)
+            SmoothTransform(remoteLeftHand, targetPose.LeftHandPosition, targetPose.LeftHandRotation, blend);
+        if (targetPose.RightHandTracked)
+            SmoothTransform(remoteRightHand, targetPose.RightHandPosition, targetPose.RightHandRotation, blend);
     }
 
-    private GlimpTagAvatarPoseSnapshot CapturePose()
+    private GlimpTagAvatarPoseSnapshot CapturePose(bool includeHandTracking)
     {
-        if (headSource == null || leftHandSource == null || rightHandSource == null)
+        if (headSource == null)
             return GlimpTagAvatarPoseSnapshot.Identity;
 
+        bool leftTracked = includeHandTracking && leftHandSource != null &&
+            leftHandSource.gameObject.activeInHierarchy;
+        bool rightTracked = includeHandTracking && rightHandSource != null &&
+            rightHandSource.gameObject.activeInHierarchy;
         Quaternion inverseRootRotation = Quaternion.Inverse(transform.rotation);
 
         return new GlimpTagAvatarPoseSnapshot
         {
             IsValid = true,
+            LeftHandTracked = leftTracked,
+            RightHandTracked = rightTracked,
             HeadPosition = transform.InverseTransformPoint(headSource.position),
             HeadRotation = inverseRootRotation * headSource.rotation,
-            LeftHandPosition = transform.InverseTransformPoint(leftHandSource.position),
-            LeftHandRotation = inverseRootRotation * leftHandSource.rotation,
-            RightHandPosition = transform.InverseTransformPoint(rightHandSource.position),
-            RightHandRotation = inverseRootRotation * rightHandSource.rotation
+            LeftHandPosition = leftTracked
+                ? transform.InverseTransformPoint(leftHandSource.position) : Vector3.zero,
+            LeftHandRotation = leftTracked
+                ? inverseRootRotation * leftHandSource.rotation : Quaternion.identity,
+            RightHandPosition = rightTracked
+                ? transform.InverseTransformPoint(rightHandSource.position) : Vector3.zero,
+            RightHandRotation = rightTracked
+                ? inverseRootRotation * rightHandSource.rotation : Quaternion.identity
         };
     }
 
@@ -193,14 +225,20 @@ public sealed class GlimpTagNetworkAvatarPoseSync : NetworkBehaviour
             return;
 
         targetPose = current;
-        hasRemotePose = true;
+        hasRemotePose = current.IsValid;
+        SetTargetActive(remoteLeftHand, current.IsValid && current.LeftHandTracked);
+        SetTargetActive(remoteRightHand, current.IsValid && current.RightHandTracked);
     }
 
     private void ApplyPoseImmediately(GlimpTagAvatarPoseSnapshot pose)
     {
         SetTransform(remoteHead, pose.HeadPosition, pose.HeadRotation);
-        SetTransform(remoteLeftHand, pose.LeftHandPosition, pose.LeftHandRotation);
-        SetTransform(remoteRightHand, pose.RightHandPosition, pose.RightHandRotation);
+        SetTargetActive(remoteLeftHand, pose.LeftHandTracked);
+        SetTargetActive(remoteRightHand, pose.RightHandTracked);
+        if (pose.LeftHandTracked)
+            SetTransform(remoteLeftHand, pose.LeftHandPosition, pose.LeftHandRotation);
+        if (pose.RightHandTracked)
+            SetTransform(remoteRightHand, pose.RightHandPosition, pose.RightHandRotation);
     }
 
     private static void SmoothTransform(
@@ -214,6 +252,12 @@ public sealed class GlimpTagNetworkAvatarPoseSync : NetworkBehaviour
 
         target.localPosition = Vector3.Lerp(target.localPosition, position, blend);
         target.localRotation = Quaternion.Slerp(target.localRotation, rotation, blend);
+    }
+
+    private static void SetTargetActive(Transform target, bool active)
+    {
+        if (target != null && target.gameObject.activeSelf != active)
+            target.gameObject.SetActive(active);
     }
 
     private static void SetTransform(Transform target, Vector3 position, Quaternion rotation)

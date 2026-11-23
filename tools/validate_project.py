@@ -20,7 +20,7 @@ PACKAGES = {
 }
 FILES = [
     "README.md", "CLOUD_BUILD.md", "BUILD_VALIDATION.md", "QUEST_INSTALL.md", "TAG_VALIDATION.md",
-    "LOCOMOTION_STABILITY.md", "PACKAGE_COMPATIBILITY.md", "ROUND_RESET.md", "FALL_RECOVERY.md",
+    "LOCOMOTION_STABILITY.md", "PACKAGE_COMPATIBILITY.md", "ROUND_RESET.md", "FALL_RECOVERY.md", "POSE_TRACKING.md",
     "Packages/manifest.json", "ProjectSettings/ProjectVersion.txt",
     "Assets/Editor/GlimpTagProjectBuilder.cs",
     "Assets/Editor/GlimpTagNetworkPrefabBuilder.cs",
@@ -28,9 +28,9 @@ FILES = [
     "Assets/GLIMP_TAG/Scripts/GlimpTagRuntimeBootstrap.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagLocomotion.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagNetworkPlayer.cs",
+    "Assets/GLIMP_TAG/Scripts/GlimpTagNetworkAvatarPoseSync.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagNetworkTagger.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagNetworkPlayerRig.cs",
-    "Assets/GLIMP_TAG/Scripts/GlimpTagRelaySession.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagRelaySession.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagVoiceChat.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagWristMenu.cs",
@@ -155,6 +155,35 @@ def validate(root):
     else:
         add("warning", "server-tag-validation-doc",
             "TAG_VALIDATION.md should explicitly state Unity/Quest testing limits.")
+
+    pose_sync = texts.get("Assets/GLIMP_TAG/Scripts/GlimpTagNetworkAvatarPoseSync.cs", "")
+    pose_sync_markers = [
+        "public bool LeftHandTracked;", "public bool RightHandTracked;",
+        "serializer.SerializeValue(ref LeftHandTracked)",
+        "serializer.SerializeValue(ref RightHandTracked)",
+        "CapturePose(false)", "CapturePose(true)",
+        "leftHandSource.gameObject.activeInHierarchy",
+        "rightHandSource.gameObject.activeInHierarchy",
+        "SetTargetActive(remoteLeftHand, targetPose.LeftHandTracked)",
+        "SetTargetActive(remoteRightHand, targetPose.RightHandTracked)",
+    ]
+    missing_pose_sync = [marker for marker in pose_sync_markers if marker not in pose_sync]
+    tag_tracking_markers = [
+        "bool attackerHandTracked", "if (!attackerHandTracked)",
+        "if (targetPose.LeftHandTracked)", "if (targetPose.RightHandTracked)",
+    ]
+    missing_tag_tracking = [marker for marker in tag_tracking_markers if marker not in network_player]
+    pose_doc = texts.get("POSE_TRACKING.md", "")
+    if missing_pose_sync or missing_tag_tracking:
+        add("error", "tracked-hand-pose",
+            "Tracked-hand state is not fully synchronized/validated: " +
+            ", ".join(missing_pose_sync + missing_tag_tracking))
+    elif "not been compiled in Unity or tested with a Quest headset" in pose_doc:
+        add("pass", "tracked-hand-pose",
+            "Hand tracking validity is serialized, remote hands hide when lost, and stale-hand tag requests are rejected.")
+    else:
+        add("warning", "tracked-hand-pose-doc",
+            "POSE_TRACKING.md should state Unity and Quest testing limits.")
 
     rig_fall = network_rig
     fall_markers = ["fallResetHeight", "fallResetCooldown", "Time.unscaledTime", "ResetOwnerToSpawn()", "IsOwner"]

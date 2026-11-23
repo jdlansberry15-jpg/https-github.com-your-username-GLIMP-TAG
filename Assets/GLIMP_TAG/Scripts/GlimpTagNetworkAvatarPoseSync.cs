@@ -221,13 +221,20 @@ public sealed class GlimpTagNetworkAvatarPoseSync : NetworkBehaviour
         GlimpTagAvatarPoseSnapshot previous,
         GlimpTagAvatarPoseSnapshot current)
     {
-        if (IsOwner || !current.IsValid)
+        if (IsOwner)
             return;
 
         targetPose = current;
         hasRemotePose = current.IsValid;
-        SetTargetActive(remoteLeftHand, current.IsValid && current.LeftHandTracked);
-        SetTargetActive(remoteRightHand, current.IsValid && current.RightHandTracked);
+        if (!current.IsValid)
+        {
+            SetTargetActive(remoteLeftHand, false);
+            SetTargetActive(remoteRightHand, false);
+            return;
+        }
+
+        SetTargetActive(remoteLeftHand, current.LeftHandTracked);
+        SetTargetActive(remoteRightHand, current.RightHandTracked);
     }
 
     private void ApplyPoseImmediately(GlimpTagAvatarPoseSnapshot pose)

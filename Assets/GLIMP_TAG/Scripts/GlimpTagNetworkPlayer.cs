@@ -195,6 +195,12 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
         if (!attackerPose.IsValid)
             return;
 
+        bool attackerHandTracked = isLeftHand
+            ? attackerPose.LeftHandTracked
+            : attackerPose.RightHandTracked;
+        if (!attackerHandTracked)
+            return;
+
         Vector3 attackerHandLocal = isLeftHand
             ? attackerPose.LeftHandPosition
             : attackerPose.RightHandPosition;
@@ -222,12 +228,18 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
                 nearestTargetDistance = Mathf.Min(nearestTargetDistance,
                     Vector3.Distance(attackerHandWorld,
                         target.transform.TransformPoint(targetPose.HeadPosition)));
-                nearestTargetDistance = Mathf.Min(nearestTargetDistance,
-                    Vector3.Distance(attackerHandWorld,
-                        target.transform.TransformPoint(targetPose.LeftHandPosition)));
-                nearestTargetDistance = Mathf.Min(nearestTargetDistance,
-                    Vector3.Distance(attackerHandWorld,
-                        target.transform.TransformPoint(targetPose.RightHandPosition)));
+                if (targetPose.LeftHandTracked)
+                {
+                    nearestTargetDistance = Mathf.Min(nearestTargetDistance,
+                        Vector3.Distance(attackerHandWorld,
+                            target.transform.TransformPoint(targetPose.LeftHandPosition)));
+                }
+                if (targetPose.RightHandTracked)
+                {
+                    nearestTargetDistance = Mathf.Min(nearestTargetDistance,
+                        Vector3.Distance(attackerHandWorld,
+                            target.transform.TransformPoint(targetPose.RightHandPosition)));
+                }
             }
         }
 

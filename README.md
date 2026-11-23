@@ -9,7 +9,7 @@ GLIMP TAG is an original arm-swing VR tag-game prototype for Meta Quest 2, Quest
 - Hand-contact locomotion with tracking-loss recovery, own-collider filtering, and speed limits
 - An original generated forest arena with treehouse, circular bridge, climbing trees, gazebo, cave, rocks, and eight spawn points
 - Editor-generated network player prefab with local owner XR rig and remote avatar visuals
-- Head and hand pose synchronization at a default 20 Hz
+- Head and hand pose synchronization at a default 20 Hz, including explicit per-hand tracking-validity flags and hidden remote hands during tracking loss
 - Relay room-code lobby with Create Room, Join Room, Copy Room Code, player count, and Leave Room
 - Unity Services anonymous sign-in and Relay-backed Netcode host/client setup
 - Server-host infection rounds, random first infected, hand-pose/reach-checked tag requests, timer, win states, automatic round restart, and owner-side fall recovery
@@ -22,6 +22,10 @@ GLIMP TAG is an original arm-swing VR tag-game prototype for Meta Quest 2, Quest
 The project is pinned to Unity 6.3 LTS and prepared for Unity Build Automation. The intended workflow is to connect this public GitHub repository to Unity Build Automation in a browser, build Android in the cloud, and download the APK. See CLOUD_BUILD.md.
 
 After a cloud build produces an APK, a Chromebook can use a browser-based Quest sideloader in Chrome with a data-capable USB-C cable to install it. See QUEST_INSTALL.md.
+
+## Networked hand tracking
+
+See POSE_TRACKING.md for per-hand tracking-validity synchronization, remote hand visibility, and stale-pose tag rejection.
 
 ## Compatibility and locomotion notes
 

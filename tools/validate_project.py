@@ -166,11 +166,21 @@ def validate(root):
         "rightHandSource.gameObject.activeInHierarchy",
         "SetTargetActive(remoteLeftHand, targetPose.LeftHandTracked)",
         "SetTargetActive(remoteRightHand, targetPose.RightHandTracked)",
+        "public uint Sequence;",
+        "serializer.SerializeValue(ref Sequence)",
+        "private uint poseSequence",
+        "lastPoseReceivedAt = float.NegativeInfinity",
+        "public bool HasFreshPose(float maxAgeSeconds)",
+        "current.Sequence != previous.Sequence",
+        "Sequence = sequence",
     ]
     missing_pose_sync = [marker for marker in pose_sync_markers if marker not in pose_sync]
     tag_tracking_markers = [
         "bool attackerHandTracked", "if (!attackerHandTracked)",
         "if (targetPose.LeftHandTracked)", "if (targetPose.RightHandTracked)",
+        "serverPoseMaxAgeSeconds = 0.75f",
+        "attackerPoseSync.HasFreshPose(coordinator.serverPoseMaxAgeSeconds)",
+        "targetPoseSync.HasFreshPose(coordinator.serverPoseMaxAgeSeconds)",
     ]
     missing_tag_tracking = [marker for marker in tag_tracking_markers if marker not in network_player]
     pose_doc = texts.get("POSE_TRACKING.md", "")
@@ -180,7 +190,7 @@ def validate(root):
             ", ".join(missing_pose_sync + missing_tag_tracking))
     elif "not been compiled in Unity or tested with a Quest headset" in pose_doc:
         add("pass", "tracked-hand-pose",
-            "Hand tracking validity is serialized, remote hands hide when lost, and stale-hand tag requests are rejected.")
+            "Tracked-hand validity, per-send sequence numbers, server receipt timestamps, and stale attacker/target pose gates are present.")
     else:
         add("warning", "tracked-hand-pose-doc",
             "POSE_TRACKING.md should state Unity and Quest testing limits.")

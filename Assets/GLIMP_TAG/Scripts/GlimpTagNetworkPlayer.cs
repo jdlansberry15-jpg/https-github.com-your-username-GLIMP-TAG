@@ -26,6 +26,7 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
     [SerializeField, Min(0.5f)] private float serverTagDistance = 3f;
     [SerializeField, Min(0.25f)] private float serverHandTagDistance = 1.35f;
     [SerializeField, Min(0.5f)] private float serverMaxHandReach = 2.4f;
+    [SerializeField, Min(0.1f)] private float serverPoseMaxAgeSeconds = 0.75f;
 
     public NetworkVariable<bool> IsTagged = new NetworkVariable<bool>(
         false, NetworkVariableReadPermission.Everyone,
@@ -188,7 +189,8 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
 
         GlimpTagNetworkAvatarPoseSync attackerPoseSync =
             GetComponent<GlimpTagNetworkAvatarPoseSync>();
-        if (attackerPoseSync == null)
+        if (attackerPoseSync == null ||
+            !attackerPoseSync.HasFreshPose(coordinator.serverPoseMaxAgeSeconds))
             return;
 
         GlimpTagAvatarPoseSnapshot attackerPose = attackerPoseSync.AvatarPose.Value;
@@ -220,7 +222,8 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
 
         GlimpTagNetworkAvatarPoseSync targetPoseSync =
             target.GetComponent<GlimpTagNetworkAvatarPoseSync>();
-        if (targetPoseSync != null)
+        if (targetPoseSync != null &&
+            targetPoseSync.HasFreshPose(coordinator.serverPoseMaxAgeSeconds))
         {
             GlimpTagAvatarPoseSnapshot targetPose = targetPoseSync.AvatarPose.Value;
             if (targetPose.IsValid)

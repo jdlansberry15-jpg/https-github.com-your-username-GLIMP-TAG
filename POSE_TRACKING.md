@@ -32,3 +32,11 @@ The tracking flags are part of the owner-write NetworkVariable snapshot. They pr
 The repository preflight checks confirm that tracking flags are serialized, compared, hashed, used to hide/show remote hands, and checked by the server tag validator.
 
 These are static source checks only. The changes have **not** been compiled in Unity or tested with a Quest headset. Real validation still needs controller disconnect/reconnect, hand-tracking loss/reacquisition, and two-player Relay tests.
+
+## Server-side pose freshness
+
+Each owner pose snapshot now includes a monotonically increasing sequence number. The sequence changes on every scheduled send, including while the avatar is stationary, so a stationary player still produces a fresh network update.
+
+The server records its own local receipt time whenever the sequence changes. Tag validation requires the attacking player's pose to have arrived within the host-configured 0.75 second freshness window. A target's head/hand points are used only while that target snapshot is also fresh; otherwise the validator falls back to the target's synchronized root/torso position.
+
+This avoids relying on client clocks and prevents a frozen, previously valid hand pose from remaining eligible indefinitely. The extra sequence field adds four bytes to the pose snapshot before transport overhead.

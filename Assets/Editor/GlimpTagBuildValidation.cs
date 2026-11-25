@@ -176,6 +176,9 @@ public sealed class GlimpTagBuildValidation : IPreprocessBuildWithReport
         GlimpTagNetworkPlayer networkPlayer = prefab.GetComponent<GlimpTagNetworkPlayer>();
         if (networkPlayer != null)
         {
+            Require(networkPlayer.SpawnSlot != null,
+                "Network player server-assigned SpawnSlot variable is missing.", errors);
+
             SerializedObject serialized = new SerializedObject(networkPlayer);
             SerializedProperty renderers = serialized.FindProperty("colorRenderers");
             Require(renderers != null && renderers.arraySize > 0 &&

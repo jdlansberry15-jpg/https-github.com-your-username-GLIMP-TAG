@@ -36,6 +36,12 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
         Color.white, NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server);
 
+    // Assigned by the server from the first free arena slot. The value is replicated
+    // so every owner and every round reset uses the same unique position.
+    public NetworkVariable<int> SpawnSlot = new NetworkVariable<int>(
+        -1, NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server);
+
     // Small fixed string keeps player names persistent and allocation-free on the network.
     public NetworkVariable<FixedString64Bytes> DisplayName = new NetworkVariable<FixedString64Bytes>(
         new FixedString64Bytes("Glimp Player"),
@@ -74,6 +80,10 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
         IsTagged.OnValueChanged += OnTaggedChanged;
         PlayerColor.OnValueChanged += OnColorChanged;
 
+        SpawnSlot.OnValueChanged += OnSpawnSlotChanged;
+        if (IsServer)
+            AssignSpawnSlotOnServer();
+
         if (IsServer)
             PlayerColor.Value = Random.ColorHSV(0f, 1f, 0.65f, 1f, 0.75f, 1f);
 
@@ -96,6 +106,72 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
     {
         IsTagged.OnValueChanged -= OnTaggedChanged;
         PlayerColor.OnValueChanged -= OnColorChanged;
+        SpawnSlot.OnValueChanged -= OnSpawnSlotChanged;
+    }
+
+    /// <summary>
+    /// Allocate the first unused spawn slot on the server. This avoids client-ID
+    /// modulo collisions when players leave and later rejoin a Relay room.
+    /// </summary>
+    private void AssignSpawnSlotOnServer()
+    {
+        if (!IsServer)
+            return;
+
+        NetworkManager manager = NetworkManager.Singleton;
+        int slot = FindFirstFreeSpawnSlot(
+            manager, NetworkObject, GlimpTagRuntimeBootstrap.SpawnPointCount);
+
+        if (slot < 0)
+        {
+            SpawnSlot.Value = -1;
+            Debug.LogError("GLIMP TAG: no free forest spawn slot is available. Check the eight-player room limit.");
+            return;
+        }
+
+        SpawnSlot.Value = slot;
+    }
+
+    private static int FindFirstFreeSpawnSlot(
+        NetworkManager manager, NetworkObject currentPlayerObject, int spawnCount)
+    {
+        if (manager == null || currentPlayerObject == null || spawnCount <= 0)
+            return -1;
+
+        bool[] occupied = new bool[spawnCount];
+        foreach (NetworkClient client in manager.ConnectedClientsList)
+        {
+            NetworkObject playerObject = client.PlayerObject;
+            if (playerObject == null || playerObject == currentPlayerObject)
+                continue;
+
+            GlimpTagNetworkPlayer otherPlayer =
+                playerObject.GetComponent<GlimpTagNetworkPlayer>();
+            if (otherPlayer == null || !otherPlayer.IsSpawned)
+                continue;
+
+            int assignedSlot = otherPlayer.SpawnSlot.Value;
+            if (assignedSlot >= 0 && assignedSlot < spawnCount)
+                occupied[assignedSlot] = true;
+        }
+
+        for (int slot = 0; slot < occupied.Length; slot++)
+        {
+            if (!occupied[slot])
+                return slot;
+        }
+
+        return -1;
+    }
+
+    private void OnSpawnSlotChanged(int previous, int current)
+    {
+        if (!IsOwner || current < 0)
+            return;
+
+        GlimpTagNetworkPlayerRig rig = GetComponent<GlimpTagNetworkPlayerRig>();
+        if (rig != null)
+            rig.ResetOwnerToSpawn();
     }
 
     private void Update()

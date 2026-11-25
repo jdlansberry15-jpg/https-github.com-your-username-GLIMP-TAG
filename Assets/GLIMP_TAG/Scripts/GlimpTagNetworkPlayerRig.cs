@@ -200,7 +200,16 @@ public sealed class GlimpTagNetworkPlayerRig : NetworkBehaviour
         if (arena == null || arena.SpawnPoints == null || arena.SpawnPoints.Length == 0)
             return;
 
-        int index = (int)(OwnerClientId % (ulong)arena.SpawnPoints.Length);
+        GlimpTagNetworkPlayer networkPlayer = GetComponent<GlimpTagNetworkPlayer>();
+        int index = networkPlayer != null ? networkPlayer.SpawnSlot.Value : -1;
+        if (index < 0 || index >= arena.SpawnPoints.Length)
+        {
+            Debug.LogWarning(
+                "GLIMP TAG: waiting for the server-assigned forest spawn slot for client " +
+                OwnerClientId + ".");
+            return;
+        }
+
         Transform spawn = arena.SpawnPoints[index];
         if (spawn == null)
             return;

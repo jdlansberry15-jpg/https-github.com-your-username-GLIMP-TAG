@@ -34,6 +34,7 @@ FILES = [
     "Assets/GLIMP_TAG/Scripts/GlimpTagRelaySession.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagVoiceChat.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagWristMenu.cs",
+    "SPAWN_ASSIGNMENT.md",
 ]
 
 
@@ -119,6 +120,30 @@ def validate(root):
         add("pass", "spawn-capacity", "Eight ground spawn slots match one host plus up to seven Relay guests.")
 
     network_player = texts.get("Assets/GLIMP_TAG/Scripts/GlimpTagNetworkPlayer.cs", "")
+    network_rig = texts.get("Assets/GLIMP_TAG/Scripts/GlimpTagNetworkPlayerRig.cs", "")
+    spawn_assignment_markers = [
+        "NetworkVariable<int> SpawnSlot",
+        "SpawnSlot.OnValueChanged += OnSpawnSlotChanged;",
+        "AssignSpawnSlotOnServer();",
+        "FindFirstFreeSpawnSlot(",
+        "client.PlayerObject == currentPlayerObject",
+        "SpawnSlot.Value = slot;",
+        "SpawnSlot.OnValueChanged -= OnSpawnSlotChanged;",
+    ]
+    missing_assignment = [marker for marker in spawn_assignment_markers if marker not in network_player]
+    if "networkPlayer.SpawnSlot.Value" not in network_rig or "OwnerClientId %" in network_rig:
+        missing_assignment.append("network rig must use SpawnSlot instead of client-ID modulo")
+    spawn_doc = texts.get("SPAWN_ASSIGNMENT.md", "")
+    if missing_assignment:
+        add("error", "server-spawn-assignment",
+            "Server-assigned unique spawn slots are incomplete: " + ", ".join(missing_assignment))
+    elif "not been Unity-compiled or Quest-tested" in spawn_doc:
+        add("pass", "server-spawn-assignment",
+            "Server allocates the first free replicated slot; owner spawn and round resets use that slot.")
+    else:
+        add("warning", "server-spawn-assignment-doc",
+            "SPAWN_ASSIGNMENT.md should state Unity and Quest testing limits.")
+
     network_rig = texts.get("Assets/GLIMP_TAG/Scripts/GlimpTagNetworkPlayerRig.cs", "")
     round_markers = ["[Rpc(SendTo.Owner)]", "ResetOwnerForRoundRpc", "players[i].ResetOwnerForRoundRpc();", "RoundPhase.Value = RoundActive"]
     missing_round = [marker for marker in round_markers if marker not in network_player]

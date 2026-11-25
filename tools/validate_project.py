@@ -126,7 +126,7 @@ def validate(root):
         "SpawnSlot.OnValueChanged += OnSpawnSlotChanged;",
         "AssignSpawnSlotOnServer();",
         "FindFirstFreeSpawnSlot(",
-        "client.PlayerObject == currentPlayerObject",
+        "playerObject == currentPlayerObject",
         "SpawnSlot.Value = slot;",
         "SpawnSlot.OnValueChanged -= OnSpawnSlotChanged;",
     ]

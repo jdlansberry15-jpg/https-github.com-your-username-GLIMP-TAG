@@ -12,6 +12,7 @@ public struct GlimpTagAvatarPoseSnapshot : INetworkSerializable, IEquatable<Glim
     public bool IsValid;
     public bool LeftHandTracked;
     public bool RightHandTracked;
+    public uint Sequence;
     public Vector3 HeadPosition;
     public Quaternion HeadRotation;
     public Vector3 LeftHandPosition;
@@ -40,6 +41,7 @@ public struct GlimpTagAvatarPoseSnapshot : INetworkSerializable, IEquatable<Glim
         serializer.SerializeValue(ref IsValid);
         serializer.SerializeValue(ref LeftHandTracked);
         serializer.SerializeValue(ref RightHandTracked);
+        serializer.SerializeValue(ref Sequence);
         serializer.SerializeValue(ref HeadPosition);
         serializer.SerializeValue(ref HeadRotation);
         serializer.SerializeValue(ref LeftHandPosition);
@@ -53,6 +55,7 @@ public struct GlimpTagAvatarPoseSnapshot : INetworkSerializable, IEquatable<Glim
         return IsValid == other.IsValid &&
             LeftHandTracked == other.LeftHandTracked &&
             RightHandTracked == other.RightHandTracked &&
+            Sequence == other.Sequence &&
             HeadPosition.Equals(other.HeadPosition) &&
             HeadRotation.Equals(other.HeadRotation) &&
             LeftHandPosition.Equals(other.LeftHandPosition) &&
@@ -73,6 +76,7 @@ public struct GlimpTagAvatarPoseSnapshot : INetworkSerializable, IEquatable<Glim
             int hash = IsValid ? 1 : 0;
             hash = (hash * 31) + (LeftHandTracked ? 1 : 0);
             hash = (hash * 31) + (RightHandTracked ? 1 : 0);
+            hash = (hash * 31) + Sequence.GetHashCode();
             hash = (hash * 31) + HeadPosition.GetHashCode();
             hash = (hash * 31) + HeadRotation.GetHashCode();
             hash = (hash * 31) + LeftHandPosition.GetHashCode();
@@ -113,6 +117,21 @@ public sealed class GlimpTagNetworkAvatarPoseSync : NetworkBehaviour
     private GlimpTagAvatarPoseSnapshot targetPose;
     private bool hasRemotePose;
     private float nextSendTime;
+    private uint poseSequence;
+    private float lastPoseReceivedAt = float.NegativeInfinity;
+
+    /// <summary>
+    /// Returns true only on the server when a valid owner pose arrived recently.
+    /// Age is measured using server receipt time, not an untrusted client clock.
+    /// </summary>
+    public bool HasFreshPose(float maxAgeSeconds)
+    {
+        if (!IsServer || !IsSpawned || !AvatarPose.Value.IsValid ||
+            float.IsNegativeInfinity(lastPoseReceivedAt))
+            return false;
+
+        return Time.unscaledTime - lastPoseReceivedAt <= Mathf.Max(0.1f, maxAgeSeconds);
+    }
 
     public void Configure(
         Transform head,
@@ -134,10 +153,15 @@ public sealed class GlimpTagNetworkAvatarPoseSync : NetworkBehaviour
     {
         AvatarPose.OnValueChanged += OnAvatarPoseChanged;
 
+        if (IsServer && AvatarPose.Value.IsValid)
+            lastPoseReceivedAt = Time.unscaledTime;
+
         if (IsOwner)
         {
             // Do not publish prefab-default hand positions before the first XR tracking update.
             AvatarPose.Value = CapturePose(false);
+            if (IsServer && AvatarPose.Value.IsValid)
+                lastPoseReceivedAt = Time.unscaledTime;
             nextSendTime = Time.unscaledTime + 1f / Mathf.Max(1f, sendRate);
         }
         else
@@ -198,10 +222,12 @@ public sealed class GlimpTagNetworkAvatarPoseSync : NetworkBehaviour
         bool rightTracked = includeHandTracking && rightHandSource != null &&
             rightHandSource.gameObject.activeInHierarchy;
         Quaternion inverseRootRotation = Quaternion.Inverse(transform.rotation);
+        uint sequence = unchecked(++poseSequence);
 
         return new GlimpTagAvatarPoseSnapshot
         {
             IsValid = true,
+            Sequence = sequence,
             LeftHandTracked = leftTracked,
             RightHandTracked = rightTracked,
             HeadPosition = transform.InverseTransformPoint(headSource.position),
@@ -221,6 +247,9 @@ public sealed class GlimpTagNetworkAvatarPoseSync : NetworkBehaviour
         GlimpTagAvatarPoseSnapshot previous,
         GlimpTagAvatarPoseSnapshot current)
     {
+        if (IsServer && current.Sequence != previous.Sequence)
+            lastPoseReceivedAt = current.IsValid ? Time.unscaledTime : float.NegativeInfinity;
+
         if (IsOwner)
             return;
 

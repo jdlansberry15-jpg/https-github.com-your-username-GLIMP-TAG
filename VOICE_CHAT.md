@@ -8,7 +8,7 @@ GLIMP TAG now has a Unity Vivox v16 integration component designed for room-scop
 - Uses the Relay room join code to derive a matching Vivox channel name.
 - Joins a 3D positional audio channel, so nearby players hear each other and voices fade with distance.
 - Reports the local network player's world position to Vivox 3 times per second.
-- Adds a MUTE MICROPHONE / UNMUTE MICROPHONE control to the existing lobby.
+- Adds a MUTE MICROPHONE / UNMUTE MICROPHONE control to the existing lobby. The microphone starts muted; the player must explicitly unmute.
 - Adds a retry control if the player denies microphone permission or voice service connection fails.
 - Leaves the voice channel when the player leaves or disconnects from the Relay room.
 
@@ -38,14 +38,14 @@ Do not paste Vivox credentials, signing keys, or service tokens into GitHub or C
 - The app joins a positional audio-only Vivox channel with a 24-unit audible distance and 2-unit conversational distance.
 - Position is updated at 3 Hz (within Unity's recommended 2–4 updates per second).
 - The microphone permission is requested at the first room voice join on Android.
-- Mute is local: it stops this player's microphone from being transmitted. It does not mute another player for everyone else.
+- Mute is local: it stops this player's microphone from being transmitted. It does not mute another player for everyone else. The app also mutes input immediately before leaving a voice channel.
 
 Vivox channel names are restricted to a documented character set; the code normalizes the room code to uppercase alphanumeric characters.
 
 ## Privacy, safety, and release limitations
 
 - Voice is not joined until a player enters a Relay room.
-- The microphone is only transmitted after Android microphone permission is granted. Players can mute themselves from the lobby.
+- Android microphone permission is requested when voice is first joined, but permission alone does not transmit audio: the microphone is muted before the Vivox channel is joined. Players must explicitly choose UNMUTE MICROPHONE in the lobby before speaking.
 - A user who denies microphone permission can still play without voice and can retry after enabling permission in Quest app settings.
 - On Android 12 and later, the component also requests Bluetooth Connect permission, following Vivox's Android setup guidance. If that permission is denied, the prototype continues with the built-in Quest audio path; Bluetooth accessories may not work correctly.
 - The channel name is derived from the Relay join code. This prototype does not use Vivox Access Tokens (VATs) or a separate authorization server. Treat the room code as private; add server-issued access tokens before a public release.

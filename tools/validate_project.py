@@ -34,7 +34,7 @@ FILES = [
     "Assets/GLIMP_TAG/Scripts/GlimpTagRelaySession.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagVoiceChat.cs",
     "Assets/GLIMP_TAG/Scripts/GlimpTagWristMenu.cs",
-    "SPAWN_ASSIGNMENT.md",
+    "SPAWN_ASSIGNMENT.md", "VOICE_CHAT.md",
 ]
 
 
@@ -242,6 +242,30 @@ def validate(root):
         add("pass", "locomotion-doc", "Locomotion notes document Quest tuning as unverified.")
     else:
         add("warning", "locomotion-doc", "Review LOCOMOTION_STABILITY.md for device-test caveats.")
+
+    voice_source = texts.get("Assets/GLIMP_TAG/Scripts/GlimpTagVoiceChat.cs", "")
+    voice_doc = texts.get("VOICE_CHAT.md", "")
+    voice_markers = [
+        "await EnsureVivoxLoginAsync();",
+        "VivoxService.Instance.MuteInputDevice();",
+        "microphoneMuted = true;",
+        'Voice connected — microphone muted. Unmute when ready.',
+    ]
+    missing_voice = [marker for marker in voice_markers if marker not in voice_source]
+    mute_position = voice_source.find("VivoxService.Instance.MuteInputDevice();")
+    join_position = voice_source.find("await VivoxService.Instance.JoinPositionalChannelAsync(")
+    if (missing_voice or mute_position < 0 or join_position < 0 or mute_position > join_position):
+        add("error", "voice-privacy-default",
+            "Voice must mute the microphone before joining Vivox: " + ", ".join(missing_voice))
+    elif voice_source.count("VivoxService.Instance.MuteInputDevice();") < 2:
+        add("error", "voice-leave-mute",
+            "Voice must also mute local microphone capture before leaving a channel.")
+    elif "microphone starts muted" in voice_doc and "explicitly choose UNMUTE MICROPHONE" in voice_doc:
+        add("pass", "voice-privacy-default",
+            "Microphone is muted before channel join and before leaving; speaking requires explicit user unmute.")
+    else:
+        add("warning", "voice-privacy-doc",
+            "VOICE_CHAT.md should document the default-muted, explicit-unmute behavior.")
 
     package_doc = texts.get("PACKAGE_COMPATIBILITY.md", "")
     package_markers = ["6000.3.26f1", "2.13.3", "2.14.0", "OverlapSphereNonAlloc", "SphereCastNonAlloc"]

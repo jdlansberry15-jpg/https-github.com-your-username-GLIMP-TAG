@@ -170,6 +170,11 @@ public sealed class GlimpTagVoiceChat : MonoBehaviour
             voiceStatus = "Connecting to voice service...";
             await EnsureVivoxLoginAsync();
 
+            // Privacy by default: mute input before joining any voice channel.
+            // Granting Android microphone permission never automatically unmutes the player.
+            VivoxService.Instance.MuteInputDevice();
+            microphoneMuted = true;
+
             string channelName = BuildChannelName(relayJoinCode);
             Channel3DProperties spatialAudio = new Channel3DProperties(
                 Mathf.Max(1, audibleDistance),
@@ -183,9 +188,9 @@ public sealed class GlimpTagVoiceChat : MonoBehaviour
                 spatialAudio);
 
             joinedChannelName = channelName;
-            microphoneMuted = false;
+            microphoneMuted = true;
             nextPositionUpdate = 0f;
-            voiceStatus = "Voice connected — nearby players can hear you.";
+            voiceStatus = "Voice connected — microphone muted. Unmute when ready.";
         }
         catch (Exception exception)
         {
@@ -295,6 +300,13 @@ public sealed class GlimpTagVoiceChat : MonoBehaviour
         string channelToLeave = joinedChannelName;
         try
         {
+            // Stop local capture before awaiting the channel leave operation.
+            if (vivoxLoggedIn)
+            {
+                VivoxService.Instance.MuteInputDevice();
+                microphoneMuted = true;
+            }
+
             await VivoxService.Instance.LeaveChannelAsync(channelToLeave);
             voiceStatus = "Voice chat disconnected.";
         }
@@ -306,7 +318,7 @@ public sealed class GlimpTagVoiceChat : MonoBehaviour
         finally
         {
             joinedChannelName = string.Empty;
-            microphoneMuted = false;
+            microphoneMuted = true;
             voiceOperationInProgress = false;
             ResetRoomTracking();
         }

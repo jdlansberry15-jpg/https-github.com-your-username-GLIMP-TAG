@@ -39,6 +39,8 @@ Do not paste Vivox credentials, signing keys, or service tokens into GitHub or C
 - Position is updated at 3 Hz (within Unity's recommended 2–4 updates per second).
 - The microphone permission is requested at the first room voice join on Android.
 - Mute is local: it stops this player's microphone from being transmitted. It does not mute another player for everyone else. The app also mutes input immediately before leaving a voice channel.
+- If the Quest app pauses, loses focus, or starts shutting down, the local microphone is muted immediately. Returning to GLIMP TAG never auto-unmutes it; the player must explicitly unmute again.
+- If Vivox cannot confirm a mute during an app interruption, GLIMP TAG attempts to leave the voice channel for safety. Channel leave is still attempted if the pre-leave mute call throws.
 
 Vivox channel names are restricted to a documented character set; the code normalizes the room code to uppercase alphanumeric characters.
 
@@ -47,6 +49,7 @@ Vivox channel names are restricted to a documented character set; the code norma
 - Voice is not joined until a player enters a Relay room.
 - Android microphone permission is requested when voice is first joined, but permission alone does not transmit audio: the microphone is muted before the Vivox channel is joined. Players must explicitly choose UNMUTE MICROPHONE in the lobby before speaking.
 - A user who denies microphone permission can still play without voice and can retry after enabling permission in Quest app settings.
+- Quest focus/pause interruption handling is source-level only until tested on a headset; OS focus and pause callbacks can vary with system overlays and permission prompts.
 - On Android 12 and later, the component also requests Bluetooth Connect permission, following Vivox's Android setup guidance. If that permission is denied, the prototype continues with the built-in Quest audio path; Bluetooth accessories may not work correctly.
 - The channel name is derived from the Relay join code. This prototype does not use Vivox Access Tokens (VATs) or a separate authorization server. Treat the room code as private; add server-issued access tokens before a public release.
 - Per-player mute/block UI, report tools, parental controls, age gating, moderation workflows, push-to-talk, and voice activity indicators are not implemented.

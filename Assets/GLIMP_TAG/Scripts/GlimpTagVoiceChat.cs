@@ -49,6 +49,54 @@ public sealed class GlimpTagVoiceChat : MonoBehaviour
         relaySession = GetComponent<GlimpTagRelaySession>();
     }
 
+    // Quest can pause GLIMP TAG when the system menu, permission UI, or another
+    // application takes focus. Always mute on interruption and never auto-unmute
+    // when focus returns; the player must press UNMUTE again.
+    private void OnApplicationPause(bool paused)
+    {
+        if (paused)
+            MuteForApplicationInterruption("application paused");
+    }
+
+    private void OnApplicationFocus(bool hasFocus)
+    {
+        if (!hasFocus)
+            MuteForApplicationInterruption("application lost focus");
+    }
+
+    private void OnApplicationQuit()
+    {
+        MuteForApplicationInterruption("application quitting");
+    }
+
+    private void MuteForApplicationInterruption(string reason)
+    {
+        if (!vivoxLoggedIn)
+        {
+            microphoneMuted = true;
+            return;
+        }
+
+        try
+        {
+            VivoxService.Instance.MuteInputDevice();
+            microphoneMuted = true;
+            if (IsConnected)
+                voiceStatus = "Voice connected — microphone muted because GLIMP TAG is " + reason + ".";
+        }
+        catch (Exception exception)
+        {
+            voiceStatus = "Microphone mute could not be confirmed during " + reason +
+                "; leaving voice channel for safety.";
+            Debug.LogError("[GLIMP TAG Voice] " + voiceStatus + " " + exception, this);
+
+            // If the SDK cannot confirm mute, drop the channel rather than leave
+            // an apparently active microphone connected while the app is inactive.
+            if (IsConnected && !voiceOperationInProgress)
+                _ = LeaveVoiceChannelAsync();
+        }
+    }
+
     private void Update()
     {
         if (voiceOperationInProgress)
@@ -301,10 +349,19 @@ public sealed class GlimpTagVoiceChat : MonoBehaviour
         try
         {
             // Stop local capture before awaiting the channel leave operation.
+            // Even if the mute call throws, still attempt to leave the channel.
             if (vivoxLoggedIn)
             {
-                VivoxService.Instance.MuteInputDevice();
-                microphoneMuted = true;
+                try
+                {
+                    VivoxService.Instance.MuteInputDevice();
+                    microphoneMuted = true;
+                }
+                catch (Exception muteException)
+                {
+                    voiceStatus = "Microphone mute warning while leaving voice: " + muteException.Message;
+                    Debug.LogWarning("[GLIMP TAG Voice] " + voiceStatus, this);
+                }
             }
 
             await VivoxService.Instance.LeaveChannelAsync(channelToLeave);

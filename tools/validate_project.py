@@ -267,6 +267,44 @@ def validate(root):
         add("warning", "voice-privacy-doc",
             "VOICE_CHAT.md should document the default-muted, explicit-unmute behavior.")
 
+    interruption_markers = [
+        "private void OnApplicationPause(bool paused)",
+        "private void OnApplicationFocus(bool hasFocus)",
+        "private void OnApplicationQuit()",
+        'MuteForApplicationInterruption("application paused")',
+        'MuteForApplicationInterruption("application lost focus")',
+        'MuteForApplicationInterruption("application quitting")',
+        "private void MuteForApplicationInterruption(string reason)",
+    ]
+    missing_interruption = [marker for marker in interruption_markers if marker not in voice_source]
+    helper_start = voice_source.find("private void MuteForApplicationInterruption(string reason)")
+    helper_end = voice_source.find("private void Update()", helper_start)
+    interruption_helper = voice_source[helper_start:helper_end] if helper_start >= 0 and helper_end > helper_start else ""
+    if missing_interruption or "VivoxService.Instance.MuteInputDevice();" not in interruption_helper:
+        add("error", "voice-focus-mute",
+            "Voice must mute on pause, focus loss, and quit: " + ", ".join(missing_interruption))
+    elif "UnmuteInputDevice" in interruption_helper:
+        add("error", "voice-focus-unmute",
+            "Application interruption handlers must never automatically unmute the microphone.")
+    elif "never auto-unmutes" in voice_doc:
+        add("pass", "voice-focus-mute",
+            "Pause, focus loss, and quit mute the local microphone; focus return never auto-unmutes.")
+    else:
+        add("warning", "voice-focus-doc",
+            "VOICE_CHAT.md should document app-interruption mute behavior.")
+
+    leave_start = voice_source.find("private async Task LeaveVoiceChannelAsync()")
+    leave_end = voice_source.find("private void ResetRoomTracking()", leave_start)
+    leave_body = voice_source[leave_start:leave_end] if leave_start >= 0 and leave_end > leave_start else ""
+    mute_catch = leave_body.find("catch (Exception muteException)")
+    channel_leave = leave_body.find("await VivoxService.Instance.LeaveChannelAsync(channelToLeave);")
+    if mute_catch < 0 or channel_leave < 0 or mute_catch > channel_leave:
+        add("error", "voice-leave-fallback",
+            "Voice channel leave must still be attempted when the pre-leave mute call throws.")
+    else:
+        add("pass", "voice-leave-fallback",
+            "Voice channel leave is attempted even if the pre-leave microphone mute call fails.")
+
     package_doc = texts.get("PACKAGE_COMPATIBILITY.md", "")
     package_markers = ["6000.3.26f1", "2.13.3", "2.14.0", "OverlapSphereNonAlloc", "SphereCastNonAlloc"]
     missing_package_markers = [marker for marker in package_markers if marker not in package_doc]

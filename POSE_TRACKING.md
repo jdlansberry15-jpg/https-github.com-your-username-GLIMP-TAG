@@ -31,7 +31,7 @@ The tracking flags are part of the owner-write NetworkVariable snapshot. They pr
 
 The repository preflight checks confirm that tracking flags are serialized, compared, hashed, used to hide/show remote hands, and checked by the server tag validator.
 
-These are static source checks only. The changes have **not** been compiled in Unity or tested with a Quest headset. Real validation still needs controller disconnect/reconnect, hand-tracking loss/reacquisition, and two-player Relay tests.
+These are static source checks only. The changes have not been compiled in Unity or tested with a Quest headset. Real validation still needs controller disconnect/reconnect, hand-tracking loss/reacquisition, and two-player Relay tests.
 
 ## Server-side pose freshness
 

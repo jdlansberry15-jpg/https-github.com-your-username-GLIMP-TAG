@@ -84,7 +84,7 @@ def validate(root):
             add("error", "package-pin", name + " is " + repr(actual) + "; expected " + expected)
 
     checks = {
-        "Assets/Editor/GlimpTagProjectBuilder.cs": ["IPreprocessBuildWithReport", "EnsureProjectReady", "ConfigureAndroidPlayer", "ConfigureOpenXR"],
+        "Assets/Editor/GlimpTagProjectBuilder.cs": ["IPreprocessBuildWithReport", "EnsureProjectReady", "public static void PreExport()", "PrepareProject();", "ConfigureAndroidPlayer", "ConfigureOpenXR"],
         "Assets/Editor/GlimpTagNetworkPrefabBuilder.cs": ["GlimpTagWristMenu", "GlimpTagVoiceChat", "GlimpTagNetworkPlayer", "ConfigureNetworkScene"],
         "Assets/Editor/GlimpTagBuildValidation.cs": ["IPreprocessBuildWithReport", "BuildFailedException", "AndroidArchitecture.ARM64", "buildAppBundle", "ValidateOpenXR"],
     }
@@ -317,6 +317,14 @@ def validate(root):
         add("pass", "package-compatibility", "NGO 2.13.3 lifecycle note matches Unity 6000.3.26f1 release notes.")
     else:
         add("warning", "package-compatibility", "Review the documented NGO package lifecycle for Unity 6000.3.")
+
+    pre_export_source = texts.get("Assets/Editor/GlimpTagProjectBuilder.cs", "")
+    if "public static void PreExport()" in pre_export_source and "Pre-Export Method Name" in cloud_doc and "`PreExport`" in cloud_doc:
+        add("pass", "cloud-pre-export-hook",
+            "Unity Build Automation has a documented, fail-fast PreExport hook.")
+    else:
+        add("error", "cloud-pre-export-hook",
+            "Add GlimpTagProjectBuilder.PreExport and document the Android target Pre-Export Method Name.")
 
     if editor_version and editor_version in cloud_doc:
         add("pass", "cloud-doc-version", "CLOUD_BUILD.md matches ProjectVersion.txt.")

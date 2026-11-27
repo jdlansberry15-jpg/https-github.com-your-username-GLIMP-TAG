@@ -20,7 +20,7 @@ GLIMP TAG is an original arm-swing VR tag-game prototype for Meta Quest 2, Quest
 
 ## Chromebook-first workflow
 
-The project is pinned to Unity 6.3 LTS and prepared for Unity Build Automation. The intended workflow is to connect this public GitHub repository to Unity Build Automation in a browser, build Android in the cloud, and download the APK. See CLOUD_BUILD.md.
+The project is pinned to Unity 6.3 LTS and prepared for Unity Build Automation. Its Android target uses an explicit `PreExport` hook to generate required scene/prefab assets before export. The intended workflow is to connect this public GitHub repository to Unity Build Automation in a browser, build Android in the cloud, and download the APK. See CLOUD_BUILD.md.
 
 After a cloud build produces an APK, a Chromebook can use a browser-based Quest sideloader in Chrome with a data-capable USB-C cable to install it. See QUEST_INSTALL.md.
 

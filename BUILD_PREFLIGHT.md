@@ -8,6 +8,7 @@ A GitHub Actions workflow now checks the repository on pushes to `main`, pull re
 - `ProjectSettings/ProjectVersion.txt` has a valid Unity Editor version and remains on the documented Unity 6.3 LTS line.
 - `Packages/manifest.json` parses as JSON and the XR, NGO, Multiplayer Services, Transport, and Vivox packages remain pinned to the versions documented for this project.
 - The Editor project builder, network prefab builder, and Unity pre-build validator still contain their expected integration markers.
+- The Unity Build Automation `PreExport` method exists, is fail-fast, and is documented in CLOUD_BUILD.md.
 - The cloud-build instructions reference the same pinned Unity Editor version.
 - Missing generated scene/prefab files are reported as warnings because the project intentionally creates them through Unity Editor automation.
 

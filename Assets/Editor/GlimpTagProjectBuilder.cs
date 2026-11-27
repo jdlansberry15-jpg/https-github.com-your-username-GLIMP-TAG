@@ -41,6 +41,38 @@ public sealed class GlimpTagProjectBuilder : IPreprocessBuildWithReport
         Debug.Log("GLIMP TAG: Quest project preparation finished.");
     }
 
+    /// <summary>
+    /// Explicit Unity Build Automation pre-export hook. Configure the Android
+    /// target's Pre-Export Method Name as "PreExport" in Unity Dashboard.
+    /// This runs after Editor script compilation and fails the cloud build if
+    /// the generated scene, network prefab, Android settings, or XR setup fail.
+    /// </summary>
+    public static void PreExport()
+    {
+        if (isPreparing)
+            throw new BuildFailedException("GLIMP TAG project preparation is already running.");
+
+        if (EditorApplication.isCompiling || EditorApplication.isUpdating)
+            throw new BuildFailedException("GLIMP TAG pre-export ran before Unity finished compiling/updating assets.");
+
+        isPreparing = true;
+        try
+        {
+            PrepareProject();
+            AssetDatabase.SaveAssets();
+            Debug.Log("GLIMP TAG: Unity Build Automation pre-export preparation completed.");
+        }
+        catch (System.Exception exception)
+        {
+            Debug.LogException(exception);
+            throw new BuildFailedException("GLIMP TAG cloud pre-export preparation failed: " + exception.Message);
+        }
+        finally
+        {
+            isPreparing = false;
+        }
+    }
+
     private static void EnsureProjectReady()
     {
         if (isPreparing || EditorApplication.isCompiling || EditorApplication.isUpdating)
@@ -52,12 +84,7 @@ public sealed class GlimpTagProjectBuilder : IPreprocessBuildWithReport
         isPreparing = true;
         try
         {
-            EnsureFolder("Assets/Scenes");
-            EnsureScene();
-            GlimpTagNetworkPrefabBuilder.EnsureNetworkPlayerPrefabAndScene(ScenePath);
-            ConfigureAndroidPlayer();
-            ConfigureOpenXR();
-            AssetDatabase.SaveAssets();
+            PrepareProject();
         }
         catch (System.Exception exception)
         {
@@ -67,6 +94,16 @@ public sealed class GlimpTagProjectBuilder : IPreprocessBuildWithReport
         {
             isPreparing = false;
         }
+    }
+
+    private static void PrepareProject()
+    {
+        EnsureFolder("Assets/Scenes");
+        EnsureScene();
+        GlimpTagNetworkPrefabBuilder.EnsureNetworkPlayerPrefabAndScene(ScenePath);
+        ConfigureAndroidPlayer();
+        ConfigureOpenXR();
+        AssetDatabase.SaveAssets();
     }
 
     private static void EnsureFolder(string path)

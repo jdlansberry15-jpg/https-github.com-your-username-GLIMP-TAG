@@ -21,6 +21,26 @@ The manifest pins these XR and multiplayer dependencies:
 
 The manifest pins are not proof that every package has resolved or compiled in this project. The first Unity Build Automation run must still confirm Package Manager resolution and C# compilation. See PACKAGE_COMPATIBILITY.md for the source links and status.
 
+## Required pre-export hook
+
+The project now exposes a deterministic Unity Build Automation pre-export method in
+`Assets/Editor/GlimpTagProjectBuilder.cs`:
+
+```csharp
+public static void PreExport()
+```
+
+For the Android build target, open **Advanced settings → Script hooks → Pre-Export Method Name**
+and enter **`PreExport`**. Unity calls this public static Editor method after script compilation
+and before exporting the Player. It synchronously generates the forest scene and network player
+prefab, configures Android ARM64 / IL2CPP / APK settings, and prepares OpenXR. If preparation
+throws an exception, the pre-export hook fails instead of silently continuing.
+
+This explicit hook is the cloud-build path; the Editor's automatic project-open preparation
+remains a convenience for an Editor session. Unity documents the pre-export hook and the
+Advanced settings field here:
+https://docs.unity.com/en-us/build-automation/advanced-build-configuration/run-custom-scripts-during-the-build-process
+
 ## Set up the cloud build from a Chromebook
 
 1. Open the Unity Dashboard in Chrome and sign in with a Unity ID.

@@ -167,11 +167,11 @@ def validate(root):
         "TryTagTargetOnServer(target.OwnerClientId, tagger.OwnerClientId, isLeftHand)",
     ]
     tag_cooldown_markers = [
-        "[Min(0.05f)] private float serverTagRequestCooldownSeconds = 0.12f;",
+        "private float serverTagRequestCooldownSeconds = 0.12f;",
         "private float nextServerTagRequestTime;",
         "now < nextServerTagRequestTime",
         "nextServerTagRequestTime = now + Mathf.Max(0.05f, serverTagRequestCooldownSeconds);",
-        "[Min(0.05f)] private float localRequestCooldownSeconds = 0.12f;",
+        "private float localRequestCooldownSeconds = 0.12f;",
         "Time.unscaledTime < nextRequestTime",
     ]
     builder_markers = ["leftTagger.ConfigureHand(true)", "rightTagger.ConfigureHand(false)"]

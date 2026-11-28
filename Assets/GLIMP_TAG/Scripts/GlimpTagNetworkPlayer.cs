@@ -27,6 +27,7 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
     [SerializeField, Min(0.25f)] private float serverHandTagDistance = 1.35f;
     [SerializeField, Min(0.5f)] private float serverMaxHandReach = 2.4f;
     [SerializeField, Min(0.1f)] private float serverPoseMaxAgeSeconds = 0.75f;
+    [SerializeField, Min(0.05f)] private float serverTagRequestCooldownSeconds = 0.12f;
 
     public NetworkVariable<bool> IsTagged = new NetworkVariable<bool>(
         false, NetworkVariableReadPermission.Everyone,
@@ -74,6 +75,7 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
     private readonly MaterialPropertyBlock propertyBlock = new MaterialPropertyBlock();
     private float endPauseRemaining;
     private float roundTickAccumulator;
+    private float nextServerTagRequestTime;
 
     public override void OnNetworkSpawn()
     {
@@ -238,6 +240,13 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
 
         if (targetClientId == senderClientId || !IsTagged.Value)
             return;
+
+        // Bound each infected player's accepted tag attempts, including invalid
+        // target requests, so repeated hand contacts cannot trigger unbounded work.
+        float now = Time.unscaledTime;
+        if (now < nextServerTagRequestTime)
+            return;
+        nextServerTagRequestTime = now + Mathf.Max(0.05f, serverTagRequestCooldownSeconds);
 
         NetworkManager manager = NetworkManager.Singleton;
         if (manager == null || !manager.IsServer)
@@ -422,7 +431,10 @@ public class GlimpTagNetworkPlayer : NetworkBehaviour
         for (int i = 0; i < players.Count; i++)
         {
             if (players[i] != null)
+            {
+                players[i].nextServerTagRequestTime = 0f;
                 players[i].ResetOwnerForRoundRpc();
+            }
         }
     }
 

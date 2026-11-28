@@ -9,6 +9,9 @@ using UnityEngine;
 public class GlimpTagNetworkTagger : NetworkBehaviour
 {
     [SerializeField] private bool isLeftHand;
+    [SerializeField, Min(0.05f)] private float localRequestCooldownSeconds = 0.12f;
+
+    private float nextRequestTime;
 
     public bool IsLeftHand => isLeftHand;
 
@@ -33,6 +36,13 @@ public class GlimpTagNetworkTagger : NetworkBehaviour
 
         if (!tagger.IsTagged.Value || target.IsTagged.Value)
             return;
+
+        // Throttle each local hand before sending. The player component also
+        // applies a combined per-player cooldown on the server.
+        if (Time.unscaledTime < nextRequestTime)
+            return;
+
+        nextRequestTime = Time.unscaledTime + Mathf.Max(0.05f, localRequestCooldownSeconds);
 
         // Client-owned hand contact sends a request from the player's
         // NetworkObject. RpcInvokePermission.Owner rejects other clients.

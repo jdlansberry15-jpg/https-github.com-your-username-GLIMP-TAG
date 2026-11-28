@@ -166,17 +166,29 @@ def validate(root):
         "RequestTagRpc(target.OwnerClientId, isLeftHand)",
         "TryTagTargetOnServer(target.OwnerClientId, tagger.OwnerClientId, isLeftHand)",
     ]
+    tag_cooldown_markers = [
+        "[Min(0.05f)] private float serverTagRequestCooldownSeconds = 0.12f;",
+        "private float nextServerTagRequestTime;",
+        "now < nextServerTagRequestTime",
+        "nextServerTagRequestTime = now + Mathf.Max(0.05f, serverTagRequestCooldownSeconds);",
+        "[Min(0.05f)] private float localRequestCooldownSeconds = 0.12f;",
+        "Time.unscaledTime < nextRequestTime",
+    ]
     builder_markers = ["leftTagger.ConfigureHand(true)", "rightTagger.ConfigureHand(false)"]
     missing_tag = [marker for marker in tag_markers if marker not in network_player]
     missing_tagger = [marker for marker in tagger_markers if marker not in tagger_source]
     missing_builder = [marker for marker in builder_markers if marker not in prefab_builder]
-    if missing_tag or missing_tagger or missing_builder:
+    missing_tag_cooldown = [
+        marker for marker in tag_cooldown_markers
+        if marker not in network_player + tagger_source
+    ]
+    if missing_tag or missing_tagger or missing_builder or missing_tag_cooldown:
         add("error", "server-tag-validation",
             "Hand-pose tag validation is incomplete: " +
-            ", ".join(missing_tag + missing_tagger + missing_builder))
-    elif "not been Unity-compiled or Quest-tested" in tag_doc:
+            ", ".join(missing_tag + missing_tagger + missing_builder + missing_tag_cooldown))
+    elif "0.12 seconds" in tag_doc and "not transport-layer RPC flood protection" in tag_doc and "not been Unity-compiled or Quest-tested" in tag_doc:
         add("pass", "server-tag-validation",
-            "Tag requests identify the attacking hand and the host checks its latest network pose and reach.")
+            "Tag requests identify the attacking hand; the host checks fresh pose/reach and applies per-hand plus server per-player request cooldowns.")
     else:
         add("warning", "server-tag-validation-doc",
             "TAG_VALIDATION.md should explicitly state Unity/Quest testing limits.")

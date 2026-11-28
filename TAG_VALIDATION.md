@@ -15,6 +15,12 @@ The host reads the attacker's most recent owner-published avatar pose snapshot a
 
 The last two distances are server-side checks against replicated data. A client cannot pass a hand world position directly through the tag RPC.
 
+## Tag-request rate limiting
+
+Each local hand throttles its own contact requests to one every **0.12 seconds**. The server also applies a combined per-player 0.12-second acceptance cooldown before looking up and validating a requested target. The server cooldown is reset when a new round starts. This limits repeated contact callbacks and prevents one infected player from causing unbounded tag-validation work through rapid target changes.
+
+This is an application-level gameplay throttle, not transport-layer RPC flood protection. A modified client can still send packets that reach the RPC dispatcher; production public matchmaking would also need connection-level abuse monitoring and server-authoritative movement validation.
+
 ## Why the tolerance is not the collider radius
 
 Avatar poses are sent at 20 Hz while the root transform is synchronized separately. A real hand contact can therefore be observed using slightly different snapshots on the host. The 1.35 m target envelope is deliberately more forgiving than the physical hand sphere so normal latency does not reject every contact. It is still much tighter than allowing any tag within the 3 m root range.
